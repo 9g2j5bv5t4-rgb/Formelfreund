@@ -112,7 +112,8 @@ private final class RunState: @unchecked Sendable {
             // Beide Ausgaben auf eigenen Threads lesen, bis das Programm sie schliesst.
             Thread.detachNewThread { self.drain(isStdout: true) }
             Thread.detachNewThread { self.drain(isStdout: false) }
-            if shouldTerminate { process.terminate() }
+            // Abbruch kam während des Starts: jetzt nachholen.
+            if shouldTerminate { terminate() }
         } catch {
             lock.lock()
             let pending = self.continuation
@@ -128,8 +129,12 @@ private final class RunState: @unchecked Sendable {
         let shouldTerminate = launched && !terminated
         lock.unlock()
         guard shouldTerminate else { return }
+        terminate()
+    }
+
+    /// Beendet den Prozess; reagiert er nicht auf SIGTERM, nach einer Sekunde hart.
+    private func terminate() {
         process.terminate()
-        // Reagiert das Programm nicht auf SIGTERM, nach einer Sekunde hart beenden.
         let pid = process.processIdentifier
         DispatchQueue.global().asyncAfter(deadline: .now() + 1) { [weak self] in
             guard let self else { return }

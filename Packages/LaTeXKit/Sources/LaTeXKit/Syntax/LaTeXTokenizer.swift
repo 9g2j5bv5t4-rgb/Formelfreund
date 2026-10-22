@@ -20,6 +20,8 @@ public enum TokenKind: UInt8, Sendable, CaseIterable {
     case brace
     /// Sonderzeichen mit Bedeutung: `&`, `~`, `#`, `^`, `_`, `\\`.
     case special
+    /// Platzhalter `•` aus eingefügten Bausteinen (mit Tab anspringbar).
+    case placeholder
 }
 
 /// Ein eingefärbter Abschnitt im Text (UTF-16-Offsets).
@@ -74,6 +76,14 @@ public struct TokenizedText: Sendable, Equatable {
     public init(tokens: [HighlightToken] = [], mathRegions: [MathRegion] = []) {
         self.tokens = tokens
         self.mathRegions = mathRegions
+    }
+
+    /// Steht der Cursor im *Inhalt* einer Formel (also zwischen den Begrenzern)?
+    /// Direkt nach `$x$` zählt nicht mehr als Formel, direkt vor dem schliessenden `$` schon.
+    public func isInsideMath(at offset: Int) -> Bool {
+        guard let region = mathRegion(containing: offset) else { return false }
+        return offset >= region.contentRange.lowerBound && offset <= region.contentRange.upperBound
+            && (offset < region.range.upperBound || !region.isClosed)
     }
 
     /// Formel, in der die Position liegt (inklusive Begrenzer), falls vorhanden.
@@ -214,6 +224,9 @@ private struct Scanner {
                     closeMath(end: i, contentEnd: i, closed: false)
                 }
                 if mode.isMath { emit(i, 1, .math) }
+                i += 1
+            case Placeholders.unit:
+                emit(i, 1, .placeholder)
                 i += 1
             default:
                 if mode.isMath { emit(i, 1, .math) }
