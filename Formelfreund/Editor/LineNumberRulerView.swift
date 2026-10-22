@@ -66,7 +66,9 @@ final class LineNumberRulerView: NSRulerView {
         bounds.fill()
 
         let textLength = textStorage.length
-        let visibleRect = textView.visibleRect
+        // Sichtbarer Bereich in Koordinaten des Text-Containers (ohne Innenabstand).
+        let origin = textView.textContainerOrigin
+        let visibleRect = textView.visibleRect.offsetBy(dx: -origin.x, dy: -origin.y)
         let glyphRange = layoutManager.glyphRange(forBoundingRect: visibleRect, in: textContainer)
         let characterRange = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
 

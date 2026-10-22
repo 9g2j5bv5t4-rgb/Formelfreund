@@ -49,7 +49,8 @@ jobs:
       - name: App verpacken
         run: |
           ditto -c -k --keepParent build/Build/Products/Release/Formelfreund.app Formelfreund.zip
-          sed "s|__GITHUB_REPOSITORY__|${{ github.repository }}|" Scripts/install.sh > install.sh
+          # Nur die Zeile REPO=… anpassen, die Prüfung auf den Platzhalter bleibt unverändert.
+          sed "/^REPO=/s|__GITHUB_REPOSITORY__|${{ github.repository }}|" Scripts/install.sh > install.sh
 
       - uses: actions/upload-artifact@v4
         with:

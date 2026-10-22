@@ -38,7 +38,7 @@ trap 'rm -rf "$WORK_DIR"' EXIT
 SOURCE="${1:-}"
 if [ -z "$SOURCE" ]; then
     case "$REPO" in
-        *__GITHUB_REPOSITORY__*|"")
+        __GITHUB_*|"")
             fail "Unbekanntes GitHub-Repository. Bitte FORMELFREUND_REPO=besitzer/repo setzen oder eine Datei angeben." ;;
     esac
     URL="https://github.com/$REPO/releases/download/latest/Formelfreund.zip"

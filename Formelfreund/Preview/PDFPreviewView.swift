@@ -29,6 +29,12 @@ struct PDFPreviewView: NSViewRepresentable {
 
     func updateNSView(_ view: SyncPDFView, context: Context) {
         context.coordinator.show(workspace.pdfDocument, revision: workspace.pdfRevision)
+        if let pending = workspace.pendingPDFReveal {
+            workspace.pendingPDFReveal = nil
+            let coordinator = context.coordinator
+            // Einen Moment warten, bis PDFKit das Dokument angeordnet hat.
+            Task { @MainActor in coordinator.reveal(pending) }
+        }
     }
 }
 

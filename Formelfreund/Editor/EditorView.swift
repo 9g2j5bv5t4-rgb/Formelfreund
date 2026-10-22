@@ -40,6 +40,10 @@ final class EditorCoordinator: NSObject, @preconcurrency NSTextViewDelegate, NST
     private var ruler: LineNumberRulerView!
     private var highlighter: SyntaxHighlighter!
     private var fontSize: CGFloat = 0
+    /// Wurzel des TextKit-Objektgraphen. Beim selbst gebauten Aufbau besitzt nicht
+    /// die Textansicht den Text, sondern umgekehrt – ohne diese Referenz würde
+    /// der Text sofort wieder freigegeben.
+    private var ownedTextStorage: NSTextStorage!
 
     init(workspace: DocumentWorkspace) {
         self.workspace = workspace
@@ -54,6 +58,7 @@ final class EditorCoordinator: NSObject, @preconcurrency NSTextViewDelegate, NST
 
         // Klassischer TextKit-Aufbau: Text → Layout → Container → Ansicht.
         let storage = NSTextStorage(string: workspace.document.text, attributes: attributes)
+        ownedTextStorage = storage
         let layoutManager = NSLayoutManager()
         // Nur sichtbare Bereiche sofort layouten – wichtig für lange Dokumente.
         layoutManager.allowsNonContiguousLayout = true
@@ -214,12 +219,11 @@ final class EditorCoordinator: NSObject, @preconcurrency NSTextViewDelegate, NST
 
     private func updateBracketHighlight() {
         guard let layoutManager = textView.layoutManager,
-              let storage = textView.textStorage,
-              let container = textView.textContainer else { return }
-        // Alte Markierungen im sichtbaren Bereich entfernen.
-        let visibleGlyphs = layoutManager.glyphRange(forBoundingRect: textView.visibleRect, in: container)
-        let visibleCharacters = layoutManager.characterRange(forGlyphRange: visibleGlyphs, actualGlyphRange: nil)
-        layoutManager.removeTemporaryAttribute(.backgroundColor, forCharacterRange: visibleCharacters)
+              let storage = textView.textStorage else { return }
+        // Alte Markierungen im ganzen Text entfernen – die Gegenklammer kann
+        // weit ausserhalb des sichtbaren Bereichs liegen. Das ist günstig, weil
+        // nur Hintergrund-Attribute entfernt werden und kein Layout nötig ist.
+        layoutManager.removeTemporaryAttribute(.backgroundColor, forCharacterRange: NSRange(location: 0, length: storage.length))
 
         let selection = textView.selectedRange()
         guard selection.length == 0 else { return }

@@ -16,8 +16,10 @@ extension UTType {
 /// kopiert oder eine zweite, konkurrierende Undo-Historie anlegt.
 ///
 /// Der Text ist mit einer Sperre geschützt, weil macOS Dokumente beim
-/// Sichern auf einem Hintergrund-Thread schreibt.
-final class TeXDocument: ReferenceFileDocument, @unchecked Sendable {
+/// Sichern auf einem Hintergrund-Thread schreibt. `nonisolated` verhindert,
+/// dass Swift die Klasse an den Hauptthread bindet – Laden und Sichern
+/// dürfen im Hintergrund laufen.
+nonisolated final class TeXDocument: ReferenceFileDocument, @unchecked Sendable {
     typealias Snapshot = String
 
     static var readableContentTypes: [UTType] { [.latexSource, .plainText] }

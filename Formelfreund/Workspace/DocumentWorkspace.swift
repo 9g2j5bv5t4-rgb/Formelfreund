@@ -64,6 +64,8 @@ final class DocumentWorkspace {
 
     @ObservationIgnored weak var editor: (any EditorControlling)?
     @ObservationIgnored weak var pdfViewer: (any PDFViewerControlling)?
+    /// Sprungziel im PDF, das gezeigt wird, sobald die Vorschau (wieder) da ist.
+    @ObservationIgnored var pendingPDFReveal: SyncTeXPosition?
     @ObservationIgnored private var compileTask: Task<Void, Never>?
     @ObservationIgnored private var autoCompileTask: Task<Void, Never>?
     @ObservationIgnored private var hasEdits = false
@@ -243,8 +245,13 @@ final class DocumentWorkspace {
             NSSound.beep()
             return
         }
-        if !showsPreview { showsPreview = true }
-        pdfViewer?.reveal(position)
+        if showsPreview, let pdfViewer {
+            pdfViewer.reveal(position)
+        } else {
+            // Die Vorschau entsteht erst beim nächsten Neuzeichnen – Ziel bis dahin merken.
+            pendingPDFReveal = position
+            if !showsPreview { showsPreview = true }
+        }
     }
 
     func showCursorInPDF() {
