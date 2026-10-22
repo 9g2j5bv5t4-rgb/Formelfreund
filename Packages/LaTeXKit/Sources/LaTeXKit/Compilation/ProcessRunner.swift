@@ -57,6 +57,8 @@ public enum ProcessRunner {
 private final class RunState: @unchecked Sendable {
     private let lock = NSLock()
     private let process = Process()
+    private let stdoutPipe = Pipe()
+    private let stderrPipe = Pipe()
     private let onOutputLine: (@Sendable (String) -> Void)?
 
     private var stdoutData = Data()
@@ -89,8 +91,6 @@ private final class RunState: @unchecked Sendable {
         self.continuation = continuation
         lock.unlock()
 
-        let stdoutPipe = Pipe()
-        let stderrPipe = Pipe()
         process.executableURL = executable
         process.arguments = arguments
         if let currentDirectory { process.currentDirectoryURL = currentDirectory }
@@ -110,10 +110,8 @@ private final class RunState: @unchecked Sendable {
             let shouldTerminate = cancelled
             lock.unlock()
             // Beide Ausgaben auf eigenen Threads lesen, bis das Programm sie schliesst.
-            let stdoutHandle = stdoutPipe.fileHandleForReading
-            let stderrHandle = stderrPipe.fileHandleForReading
-            Thread.detachNewThread { self.drain(stdoutHandle, isStdout: true) }
-            Thread.detachNewThread { self.drain(stderrHandle, isStdout: false) }
+            Thread.detachNewThread { self.drain(isStdout: true) }
+            Thread.detachNewThread { self.drain(isStdout: false) }
             if shouldTerminate { process.terminate() }
         } catch {
             lock.lock()
@@ -143,7 +141,8 @@ private final class RunState: @unchecked Sendable {
     }
 
     /// Liest blockierend bis zum Dateiende (läuft auf einem eigenen Thread).
-    private func drain(_ handle: FileHandle, isStdout: Bool) {
+    private func drain(isStdout: Bool) {
+        let handle = (isStdout ? stdoutPipe : stderrPipe).fileHandleForReading
         while true {
             let data = handle.availableData
             if data.isEmpty { break }
