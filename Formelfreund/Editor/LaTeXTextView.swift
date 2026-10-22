@@ -46,6 +46,12 @@ final class LaTeXTextView: NSTextView {
     // MARK: - Tippen
 
     override func insertText(_ string: Any, replacementRange: NSRange) {
+        // Ist genau ein Platzhalter • ausgewählt, ersetzt das Getippte ihn –
+        // auch eine Klammer soll ihn ersetzen und nicht „einpacken“.
+        if replacementRange.location == NSNotFound, !hasMarkedText(), isPlaceholderSelected {
+            let range = selectedRange()
+            perform(TextEdit(range: range.location..<(range.location + 1), replacement: "", selectionAfter: range.location..<range.location))
+        }
         guard autoPairingEnabled,
               replacementRange.location == NSNotFound,
               !hasMarkedText(),
@@ -66,6 +72,37 @@ final class LaTeXTextView: NSTextView {
         } else {
             super.insertNewline(sender)
         }
+    }
+
+    /// Tab springt zum nächsten Platzhalter • im Absatz – sonst normaler Tabulator.
+    override func insertTab(_ sender: Any?) {
+        if selectedRanges.count == 1, let next = Placeholders.next(in: source, from: selectionRange.upperBound) {
+            selectPlaceholder(next)
+        } else {
+            super.insertTab(sender)
+        }
+    }
+
+    /// ⇧Tab springt zum vorherigen Platzhalter.
+    override func insertBacktab(_ sender: Any?) {
+        if selectedRanges.count == 1, let previous = Placeholders.previous(in: source, before: selectionRange.lowerBound) {
+            selectPlaceholder(previous)
+        } else {
+            super.insertBacktab(sender)
+        }
+    }
+
+    private func selectPlaceholder(_ range: Range<Int>) {
+        let nsRange = NSRange(location: range.lowerBound, length: range.count)
+        setSelectedRange(nsRange)
+        scrollRangeToVisible(nsRange)
+    }
+
+    /// Ist genau ein Platzhalter • ausgewählt?
+    private var isPlaceholderSelected: Bool {
+        let range = selectedRange()
+        guard selectedRanges.count == 1, range.length == 1, let storage = textStorage, range.location < storage.length else { return false }
+        return storage.mutableString.character(at: range.location) == Placeholders.unit
     }
 
     override func deleteBackward(_ sender: Any?) {

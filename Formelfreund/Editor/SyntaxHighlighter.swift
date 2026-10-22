@@ -6,6 +6,9 @@ struct TextAnalysis: Sendable {
     var tokenized: TokenizedText
     var lines: LineIndex
     var outline: DocumentOutline
+    /// Seiten- und Schrifteinstellungen aus der Präambel.
+    var settings: DocumentSettings
+    var headingScheme: HeadingScheme
     var length: Int
 }
 
@@ -92,7 +95,14 @@ final class SyntaxHighlighter {
         let tokenized = LaTeXTokenizer.tokenize(buffer)
         let lines = LineIndex(buffer)
         let outline = DocumentOutline.parse(buffer, tokenized: tokenized, lines: lines)
-        return TextAnalysis(tokenized: tokenized, lines: lines, outline: outline, length: buffer.count)
+        return TextAnalysis(
+            tokenized: tokenized,
+            lines: lines,
+            outline: outline,
+            settings: PreambleEditor.settings(in: buffer),
+            headingScheme: HeadingScheme.detect(in: buffer),
+            length: buffer.count
+        )
     }
 
     private func apply(_ analysis: TextAnalysis) {

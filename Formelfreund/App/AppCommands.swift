@@ -1,3 +1,4 @@
+import LaTeXKit
 import SwiftUI
 
 /// Damit Menübefehle wissen, welches Dokumentfenster gerade vorne ist.
@@ -10,6 +11,7 @@ struct AppCommands: Commands {
     @FocusedValue(\.workspace) private var workspace
     @AppStorage(AppSettings.Keys.autoCompile) private var autoCompile = AppSettings.Defaults.autoCompile
     @AppStorage(AppSettings.Keys.editorFontSize) private var fontSize = AppSettings.Defaults.editorFontSize
+    @AppStorage(AppSettings.Keys.showFormatBar) private var showFormatBar = AppSettings.Defaults.showFormatBar
 
     var body: some Commands {
         CommandMenu("Dokument") {
@@ -44,7 +46,23 @@ struct AppCommands: Commands {
             .disabled(workspace?.lastLog == nil)
         }
 
+        CommandMenu("Format") {
+            FormatMenuContent(workspace: workspace)
+        }
+
+        CommandMenu("Einfügen") {
+            InsertMenuItems(workspace: workspace)
+        }
+
         CommandGroup(after: .sidebar) {
+            Toggle("Format-Leiste anzeigen", isOn: $showFormatBar)
+
+            Button(workspace?.showsInspector == true ? "Inspektor ausblenden" : "Inspektor einblenden") {
+                workspace?.showsInspector.toggle()
+            }
+            .keyboardShortcut("i", modifiers: [.command, .option])
+            .disabled(workspace == nil)
+
             Button(workspace?.showsPreview == false ? "PDF-Vorschau einblenden" : "PDF-Vorschau ausblenden") {
                 workspace?.showsPreview.toggle()
             }

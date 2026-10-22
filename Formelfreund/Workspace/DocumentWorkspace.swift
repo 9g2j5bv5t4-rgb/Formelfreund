@@ -49,6 +49,12 @@ final class DocumentWorkspace {
     private(set) var lastLog: String?
     /// Gliederung für die Seitenleiste (vom Editor im Hintergrund berechnet).
     private(set) var outline: DocumentOutline = .empty
+    /// Seiten- und Schrifteinstellungen laut Präambel (für den Inspektor).
+    private(set) var documentSettings = DocumentSettings()
+    /// Welche Befehle hinter „Überschrift 1–4“ stehen (abhängig von der Dokumentklasse).
+    private(set) var headingScheme: HeadingScheme = .article
+    /// Format an der Cursorposition (für die Format-Leiste).
+    var formatState = FormatState()
 
     /// PDF-Vorschau sichtbar? Wird für neue Fenster gemerkt.
     var showsPreview: Bool {
@@ -61,6 +67,8 @@ final class DocumentWorkspace {
     private var previewVisible = UserDefaults.standard.bool(forKey: AppSettings.Keys.showPreview)
     /// Protokoll-Fenster sichtbar?
     var isShowingLog = false
+    /// Inspektor (rechte Seitenleiste mit den Dokument-Einstellungen) sichtbar?
+    var showsInspector = false
 
     @ObservationIgnored weak var editor: (any EditorControlling)?
     @ObservationIgnored weak var pdfViewer: (any PDFViewerControlling)?
@@ -69,6 +77,7 @@ final class DocumentWorkspace {
     @ObservationIgnored private var compileTask: Task<Void, Never>?
     @ObservationIgnored private var autoCompileTask: Task<Void, Never>?
     @ObservationIgnored private var hasEdits = false
+    @ObservationIgnored var formatStateTask: Task<Void, Never>?
 
     /// Eigener Arbeitsordner für Hilfsdateien – wird erst beim ersten Kompilieren angelegt.
     private let buildDirectory: URL
@@ -120,9 +129,12 @@ final class DocumentWorkspace {
         scheduleAutoCompile()
     }
 
-    /// Neue Gliederung aus der Hintergrund-Analyse.
-    func update(outline newOutline: DocumentOutline) {
+    /// Neue Ergebnisse der Hintergrund-Analyse. Nur Geändertes wird gesetzt,
+    /// damit SwiftUI nicht unnötig neu zeichnet.
+    func update(outline newOutline: DocumentOutline, settings: DocumentSettings, scheme: HeadingScheme) {
         if newOutline != outline { outline = newOutline }
+        if settings != documentSettings { documentSettings = settings }
+        if scheme != headingScheme { headingScheme = scheme }
     }
 
     // MARK: - Kompilieren
@@ -150,12 +162,13 @@ final class DocumentWorkspace {
             documentDirectory: fileURL?.deletingLastPathComponent(),
             mainFileName: Self.mainFileName
         )
+        let placeholderLines = Placeholders.lines(in: Array(job.source.utf16))
         compileTask = Task { [weak self] in
-            await self?.run(job)
+            await self?.run(job, placeholderLines: placeholderLines)
         }
     }
 
-    private func run(_ job: CompileJob) async {
+    private func run(_ job: CompileJob, placeholderLines: [Int]) async {
         // 1. Engine bereitstellen (lädt Tectonic beim ersten Mal herunter).
         let engine: any TeXEngine
         do {
@@ -176,7 +189,7 @@ final class DocumentWorkspace {
                 Task { @MainActor in self.progressMessage = message }
             })
             guard !Task.isCancelled else { return }
-            await apply(output)
+            await apply(output, placeholderLines: placeholderLines)
         } catch is CancellationError {
             // Ein neuerer Lauf hat übernommen.
         } catch {
@@ -188,10 +201,13 @@ final class DocumentWorkspace {
         progressMessage = nil
     }
 
-    private func apply(_ output: CompileOutput) async {
+    private func apply(_ output: CompileOutput, placeholderLines: [Int]) async {
         lastLog = output.log.isEmpty ? output.console : output.log
-        issues = output.issues
-            .filter { $0.belongs(toMainFile: Self.mainFileName) }
+        // Nicht ausgefüllte Platzhalter • als Warnung melden – LaTeX selbst schweigt dazu.
+        let placeholderIssues = placeholderLines.map {
+            CompileIssue(severity: .warning, message: "Platzhalter • ist noch nicht ausgefüllt (Tab springt hin).", line: $0)
+        }
+        issues = (output.issues.filter { $0.belongs(toMainFile: Self.mainFileName) } + placeholderIssues)
             .sorted { ($0.severity, $0.line ?? .max) < ($1.severity, $1.line ?? .max) }
 
         guard output.succeeded, let pdfURL = output.pdfURL else {

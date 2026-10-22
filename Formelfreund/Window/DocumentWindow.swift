@@ -26,6 +26,10 @@ struct DocumentWindow: View {
             }
         }
         .frame(minWidth: 860, minHeight: 520)
+        .inspector(isPresented: $workspace.showsInspector) {
+            DocumentInspector(workspace: workspace)
+                .inspectorColumnWidth(min: 240, ideal: 280, max: 360)
+        }
         .toolbar {
             DocumentToolbar(workspace: workspace)
         }
@@ -71,6 +75,16 @@ struct DocumentToolbar: ToolbarContent {
                 Label("PDF-Vorschau", systemImage: "doc.richtext")
             }
             .help("PDF-Vorschau ein- oder ausblenden (⌥⌘P)")
+        }
+
+        ToolbarItem(placement: .primaryAction) {
+            Toggle(isOn: Binding(
+                get: { workspace.showsInspector },
+                set: { workspace.showsInspector = $0 }
+            )) {
+                Label("Inspektor", systemImage: "sidebar.trailing")
+            }
+            .help("Schrift und Seite des Dokuments einstellen (⌥⌘I)")
         }
     }
 }

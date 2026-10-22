@@ -188,6 +188,7 @@ final class EditorCoordinator: NSObject, NSTextViewDelegate, NSTextStorageDelega
     func textViewDidChangeSelection(_ notification: Notification) {
         updateBracketHighlight()
         ruler.needsDisplay = true
+        workspace.selectionDidChange()
     }
 
     nonisolated func textStorage(
@@ -209,7 +210,9 @@ final class EditorCoordinator: NSObject, NSTextViewDelegate, NSTextStorageDelega
 
     private func analysisDidFinish(_ analysis: TextAnalysis) {
         ruler.lineIndex = analysis.lines
-        workspace.update(outline: analysis.outline)
+        workspace.update(outline: analysis.outline, settings: analysis.settings, scheme: analysis.headingScheme)
+        // Der Format-Zustand hängt u. a. von der Dokumentklasse ab.
+        workspace.selectionDidChange()
         if !textView.issueLines.isEmpty {
             textView.needsDisplay = true
         }
@@ -261,6 +264,45 @@ final class EditorCoordinator: NSObject, NSTextViewDelegate, NSTextStorageDelega
 
     func focus() {
         textView.window?.makeFirstResponder(textView)
+    }
+
+    var selection: Range<Int> {
+        let range = textView.selectedRange()
+        return range.location..<(range.location + range.length)
+    }
+
+    var source: NSStringSource {
+        NSStringSource(textView.textStorage?.mutableString ?? NSMutableString())
+    }
+
+    func snapshot() -> [UInt16] {
+        guard let storage = textView.textStorage else { return [] }
+        return SyntaxHighlighter.copyUTF16(from: storage)
+    }
+
+    var currentAnalysis: TokenizedText? {
+        guard let latest = highlighter.latest, latest.length == textView.textStorage?.length else { return nil }
+        return latest.tokenized
+    }
+
+    func apply(_ edit: TextEdit) {
+        textView.perform(edit)
+    }
+
+    func groupEdits(named actionName: String, _ body: () -> Void) {
+        // Getipptes nicht mit der Formatierung zu einem Rückgängig-Schritt verschmelzen.
+        textView.breakUndoCoalescing()
+        let undoManager = textView.undoManager
+        undoManager?.beginUndoGrouping()
+        body()
+        undoManager?.setActionName(actionName)
+        undoManager?.endUndoGrouping()
+    }
+
+    func select(_ range: Range<Int>) {
+        let nsRange = NSRange(location: range.lowerBound, length: range.count)
+        textView.setSelectedRange(nsRange)
+        textView.scrollRangeToVisible(nsRange)
     }
 
     private func showInPDF(characterIndex: Int) {

@@ -8,3 +8,4 @@ build/
 Packages/LaTeXKit/.build/
 Packages/LaTeXKit/.testlog
 .DS_Store
+.claude/worktrees/

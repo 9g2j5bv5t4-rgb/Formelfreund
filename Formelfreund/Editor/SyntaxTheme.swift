@@ -18,6 +18,7 @@ enum SyntaxTheme {
         case .comment: return .secondaryLabelColor
         case .brace: return .secondaryLabelColor
         case .special: return .systemOrange
+        case .placeholder: return .controlAccentColor
         }
     }
 
