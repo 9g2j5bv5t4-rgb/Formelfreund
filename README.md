@@ -15,7 +15,7 @@ TeX-Distribution installieren zu müssen.
 Terminal öffnen (⌘-Leertaste, „Terminal“) und diese Zeile einfügen:
 
 ```sh
-curl -fsSL https://github.com/__GITHUB_REPOSITORY__/releases/download/latest/install.sh | sh
+curl -fsSL https://github.com/9g2j5bv5t4-rgb/Formelfreund/releases/download/latest/install.sh | sh
 ```
 
 Das Skript lädt die neueste Version, kopiert sie nach „Programme“ und startet
