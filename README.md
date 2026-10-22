@@ -10,31 +10,37 @@ TeX-Distribution installieren zu müssen.
   optional `latexmk`, falls MacTeX installiert ist
 - Live-PDF-Vorschau mit SyncTeX (⌘-Klick springt zwischen Quelltext und PDF)
 
-## Voraussetzungen
+## Installieren (ohne Xcode)
 
-- macOS 26 auf Apple Silicon
-- Xcode 26 (zum Bauen)
-
-## Bauen und starten
-
-1. `Formelfreund.xcodeproj` in Xcode öffnen.
-2. Oben links das Schema **Formelfreund** und „My Mac“ wählen.
-3. ⌘R drücken.
-
-Ein Apple-Entwicklerkonto ist nicht nötig: Die App wird lokal „ad hoc“ signiert.
-
-Ohne Xcode-Oberfläche:
+Terminal öffnen (⌘-Leertaste, „Terminal“) und diese Zeile einfügen:
 
 ```sh
-xcodebuild -project Formelfreund.xcodeproj -scheme Formelfreund -configuration Debug build
-swift test --package-path Packages/LaTeXKit   # Tests der Logik
+curl -fsSL https://github.com/__GITHUB_REPOSITORY__/releases/download/latest/install.sh | sh
 ```
+
+Das Skript lädt die neueste Version, kopiert sie nach „Programme“ und startet
+sie. Für ein Update dieselbe Zeile einfach noch einmal ausführen.
+Voraussetzung: Mac mit Apple-Chip und macOS 26 oder neuer.
+
+## Selbst bauen (mit Xcode)
+
+Nur nötig, wenn du am Code arbeitest:
+
+```sh
+./Scripts/build-and-run.sh
+```
+
+Das Skript testet die Logik, baut die App, installiert und startet sie.
+Alternativ `Formelfreund.xcodeproj` in Xcode öffnen und ⌘R drücken. Ein
+Apple-Entwicklerkonto ist nicht nötig, die App wird lokal „ad hoc“ signiert.
 
 ## Aufbau
 
 ```
 Formelfreund.xcodeproj      Xcode-Projekt (Ordner werden automatisch synchronisiert)
 Config/Info.plist           Dateitypen (.tex)
+Scripts/                    install.sh (App installieren), build-and-run.sh (selbst bauen)
+.github/workflows/          Automatischer Build auf GitHub, veröffentlicht die App
 Formelfreund/               Die App (Oberfläche)
   App/                      Einstieg, Menüs, Einstellungen-Schlüssel
   Document/                 Das .tex-Dokument (Laden/Sichern)

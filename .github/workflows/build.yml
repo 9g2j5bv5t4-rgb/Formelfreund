@@ -1,5 +1,8 @@
 # Baut Formelfreund auf einem Mac-Server von GitHub und führt die Tests aus.
-# Ergebnis: die fertige App als ZIP unter "Actions" → Lauf → "Artifacts".
+#
+# Nach jedem erfolgreichen Build auf "main" wird die App als Release "latest"
+# veröffentlicht. Installieren auf dem Mac mit einer Zeile im Terminal:
+#   curl -fsSL https://github.com/<besitzer>/<repo>/releases/download/latest/install.sh | sh
 name: Build
 
 on:
@@ -7,10 +10,17 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Nur ein Lauf pro Branch gleichzeitig; ein neuer Push bricht den alten ab.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: macos-26
     timeout-minutes: 40
+    permissions:
+      contents: write   # zum Veröffentlichen des Releases
     steps:
       - uses: actions/checkout@v4
 
@@ -37,7 +47,9 @@ jobs:
           grep -q "BUILD SUCCEEDED" xcodebuild.log
 
       - name: App verpacken
-        run: ditto -c -k --keepParent build/Build/Products/Release/Formelfreund.app Formelfreund.zip
+        run: |
+          ditto -c -k --keepParent build/Build/Products/Release/Formelfreund.app Formelfreund.zip
+          sed "s|__GITHUB_REPOSITORY__|${{ github.repository }}|" Scripts/install.sh > install.sh
 
       - uses: actions/upload-artifact@v4
         with:
@@ -49,3 +61,17 @@ jobs:
         with:
           name: xcodebuild-log
           path: xcodebuild.log
+
+      - name: Als "latest" veröffentlichen
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest Formelfreund.zip install.sh \
+            --target "$GITHUB_SHA" \
+            --title "Formelfreund (neueste Version)" \
+            --notes "Automatisch gebaut aus $(git rev-parse --short HEAD).
+
+          Installieren: Terminal öffnen und eingeben:
+          \`curl -fsSL https://github.com/${{ github.repository }}/releases/download/latest/install.sh | sh\`"
