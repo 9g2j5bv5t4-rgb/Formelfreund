@@ -30,7 +30,8 @@ public enum HeadingScheme: Sendable, Equatable {
 
     /// Liest `\documentclass{…}` aus dem Text; unbekannt → `.article`.
     public static func detect<S: UTF16Source>(in text: S) -> HeadingScheme {
-        fatalError("Noch nicht umgesetzt")
+        guard let name = documentClassName(in: text) else { return .article }
+        return chapterClasses.contains(name) ? .book : .article
     }
 
     /// Befehlsname ohne Backslash; `nil` für `.body`.
