@@ -1,0 +1,72 @@
+{
+ "latinModern@legacy": [
+  "\\usepackage{iftex}",
+  "\\ifPDFTeX\\usepackage[T1]{fontenc}\\fi",
+  "\\usepackage{lmodern}"
+ ],
+ "times@legacy": [
+  "\\usepackage[T1]{fontenc}",
+  "\\usepackage{newtxtext,newtxmath}"
+ ],
+ "palatino@legacy": [
+  "\\usepackage{iftex}",
+  "\\ifPDFTeX\\else\\usepackage[no-math]{fontspec}\\fi",
+  "\\usepackage{newpxtext,newpxmath}"
+ ],
+ "charter@legacy": [
+  "\\usepackage{XCharter}",
+  "\\usepackage[xcharter,noOT1]{newtxmath}"
+ ],
+ "libertinus@legacy": [
+  "\\usepackage{iftex}",
+  "\\usepackage[T1]{fontenc}",
+  "\\usepackage{libertinus}",
+  "\\ifPDFTeX\\usepackage{libertinust1math}\\fi"
+ ],
+ "helvetica@legacy": [
+  "\\usepackage{iftex}",
+  "\\ifPDFTeX",
+  "  \\usepackage[T1]{fontenc}",
+  "  \\usepackage{helvet}",
+  "\\else",
+  "  \\usepackage{fontspec}",
+  "  \\setsansfont{texgyreheros}[Extension=.otf, UprightFont=*-regular, BoldFont=*-bold, ItalicFont=*-italic, BoldItalicFont=*-bolditalic]",
+  "\\fi",
+  "\\renewcommand{\\familydefault}{\\sfdefault}"
+ ],
+ "latinModern@late": [
+  "\\usepackage{iftex}",
+  "\\ifPDFTeX\\usepackage[T1]{fontenc}\\fi",
+  "\\usepackage{lmodern}"
+ ],
+ "times@late": [
+  "\\usepackage[T1]{fontenc}",
+  "\\usepackage{newtxtext,newtxmath}"
+ ],
+ "palatino@late": [
+  "\\usepackage{iftex}",
+  "\\ifPDFTeX\\else\\usepackage[no-math]{fontspec}\\fi",
+  "\\usepackage{newpxtext,newpxmath}"
+ ],
+ "charter@late": [
+  "\\usepackage{XCharter}",
+  "\\usepackage[xcharter,noOT1]{newtxmath}"
+ ],
+ "libertinus@late": [
+  "\\usepackage{iftex}",
+  "\\usepackage[T1]{fontenc}",
+  "\\usepackage{libertinus}",
+  "\\ifPDFTeX\\usepackage{libertinust1math}\\fi"
+ ],
+ "helvetica@late": [
+  "\\usepackage{iftex}",
+  "\\ifPDFTeX",
+  "  \\usepackage[T1]{fontenc}",
+  "  \\usepackage{helvet}",
+  "\\else",
+  "  \\usepackage{fontspec}",
+  "  \\setsansfont{texgyreheros}[Extension=.otf, UprightFont=*-regular, BoldFont=*-bold, ItalicFont=*-italic, BoldItalicFont=*-bolditalic]",
+  "\\fi",
+  "\\renewcommand{\\familydefault}{\\sfdefault}"
+ ]
+}

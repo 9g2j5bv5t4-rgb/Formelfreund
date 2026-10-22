@@ -1,0 +1,5 @@
+{
+  "lmE": ["\\usepackage{iftex}", "\\ifPDFTeX\\usepackage[T1]{fontenc}\\else\\usepackage{fontspec}\\fi", "\\usepackage{lmodern}"],
+  "lmE@legacy": ["\\usepackage{iftex}", "\\ifPDFTeX\\usepackage[T1]{fontenc}\\else\\usepackage{fontspec}\\fi", "\\usepackage{lmodern}"],
+  "lmE@late": ["\\usepackage{iftex}", "\\ifPDFTeX\\usepackage[T1]{fontenc}\\else\\usepackage{fontspec}\\fi", "\\usepackage{lmodern}"]
+}

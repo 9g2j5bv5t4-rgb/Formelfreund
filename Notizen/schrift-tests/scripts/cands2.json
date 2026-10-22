@@ -1,0 +1,9 @@
+{
+  "lm-C": ["\\usepackage{iftex}", "\\ifPDFTeX\\usepackage[T1]{fontenc}\\fi", "\\usepackage{lmodern}"],
+  "times-A": ["\\usepackage[T1]{fontenc}", "\\usepackage{newtxtext,newtxmath}"],
+  "pal-B": ["\\PassOptionsToPackage{no-math}{fontspec}", "\\usepackage[T1]{fontenc}", "\\usepackage{newpxtext,newpxmath}"],
+  "charter-B": ["\\usepackage{iftex}", "\\ifPDFTeX", "  \\usepackage{XCharter}", "  \\usepackage[xcharter]{newtxmath}", "\\else", "  \\usepackage[otfmath]{XCharter}", "\\fi"],
+  "lib-B": ["\\usepackage[T1]{fontenc}", "\\usepackage{libertinus}"],
+  "lib-C": ["\\usepackage{iftex}", "\\usepackage[T1]{fontenc}", "\\usepackage{libertinus}", "\\ifPDFTeX\\usepackage{libertinust1math}\\fi"],
+  "helv-B": ["\\usepackage{iftex}", "\\ifPDFTeX", "  \\usepackage[T1]{fontenc}", "  \\usepackage{helvet}", "\\else", "  \\usepackage{fontspec}", "  \\setsansfont{texgyreheros}[Extension=.otf, UprightFont=*-regular, BoldFont=*-bold, ItalicFont=*-italic, BoldItalicFont=*-bolditalic]", "\\fi", "\\renewcommand{\\familydefault}{\\sfdefault}"]
+}

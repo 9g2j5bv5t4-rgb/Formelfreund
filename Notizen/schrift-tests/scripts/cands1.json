@@ -1,0 +1,13 @@
+{
+  "lm-empty": [],
+  "lm-t1-uncond": ["\\usepackage[T1]{fontenc}", "\\usepackage{lmodern}"],
+  "lm-lmodern-only": ["\\usepackage{lmodern}"],
+  "lm-iftex": ["\\usepackage{iftex}", "\\ifPDFTeX", "  \\usepackage[T1]{fontenc}", "  \\usepackage{lmodern}", "\\fi"],
+  "times-plain": ["\\usepackage{newtxtext,newtxmath}"],
+  "times-t1": ["\\usepackage[T1]{fontenc}", "\\usepackage{newtxtext,newtxmath}"],
+  "pal-plain": ["\\usepackage{newpxtext,newpxmath}"],
+  "charter-plain": ["\\usepackage{XCharter}", "\\usepackage[xcharter]{newtxmath}"],
+  "lib-plain": ["\\usepackage{libertinus}"],
+  "lib-t1math": ["\\usepackage{libertinus}", "\\usepackage{libertinust1math}"],
+  "helv-pdf": ["\\usepackage[T1]{fontenc}", "\\usepackage[scaled]{helvet}", "\\renewcommand{\\familydefault}{\\sfdefault}"]
+}
