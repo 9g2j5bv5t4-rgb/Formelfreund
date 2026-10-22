@@ -13,17 +13,86 @@ public enum Placeholders {
 
     /// Nächster Platzhalter ab `position` (einschliesslich) bis zum Ende des Absatzes.
     public static func next<S: UTF16Source>(in text: S, from position: Int) -> Range<Int>? {
-        fatalError("Noch nicht umgesetzt")
+        let start = min(max(0, position), text.count)
+        guard let paragraph = paragraphBounds(in: text, around: start) else { return nil }
+        var i = start
+        while i < paragraph.upperBound {
+            if text[i] == unit { return i..<(i + 1) }
+            i += 1
+        }
+        return nil
     }
 
     /// Vorheriger Platzhalter vor `position` (ausschliesslich) bis zum Anfang des Absatzes.
     public static func previous<S: UTF16Source>(in text: S, before position: Int) -> Range<Int>? {
-        fatalError("Noch nicht umgesetzt")
+        let end = min(max(0, position), text.count)
+        guard let paragraph = paragraphBounds(in: text, around: end) else { return nil }
+        var i = end - 1
+        while i >= paragraph.lowerBound {
+            if text[i] == unit { return i..<(i + 1) }
+            i -= 1
+        }
+        return nil
     }
 
     /// 1-basierte Zeilennummern aller Zeilen, die noch Platzhalter enthalten (Kommentare ausgenommen).
     public static func lines<S: UTF16Source>(in text: S) -> [Int] {
-        fatalError("Noch nicht umgesetzt")
+        var result: [Int] = []
+        var line = 1
+        var inComment = false
+        var i = 0
+        while i < text.count {
+            let u = text[i]
+            if u == TeXChar.newline {
+                // Ein Kommentar reicht nur bis zum Zeilenende.
+                line += 1
+                inComment = false
+            } else if inComment {
+                // Alles nach `%` erscheint nicht im PDF – Platzhalter dort stören nicht.
+            } else if u == TeXChar.percent && !text.isEscaped(at: i) {
+                inComment = true
+            } else if u == unit && result.last != line {
+                result.append(line)
+            }
+            i += 1
+        }
+        return result
+    }
+
+    // MARK: - Absatzgrenzen
+
+    /// Bereich des Absatzes, in dem `position` liegt: von der ersten bis zum Ende
+    /// der letzten nicht leeren Zeile. `nil`, wenn die Zeile selbst leer ist –
+    /// auf einer Leerzeile gibt es keinen „aktuellen Absatz“.
+    private static func paragraphBounds<S: UTF16Source>(in text: S, around position: Int) -> Range<Int>? {
+        let lineStart = text.lineStart(before: position)
+        let lineEnd = text.lineEnd(after: position)
+        guard !isBlank(text, lineStart..<lineEnd) else { return nil }
+
+        // Rückwärts, bis die vorherige Zeile leer ist (oder der Text beginnt).
+        var start = lineStart
+        while start > 0 {
+            let previousStart = text.lineStart(before: start - 1)
+            if isBlank(text, previousStart..<(start - 1)) { break }
+            start = previousStart
+        }
+        // Vorwärts, bis die nächste Zeile leer ist (oder der Text endet).
+        var end = lineEnd
+        while end < text.count {
+            let nextEnd = text.lineEnd(after: end + 1)
+            if isBlank(text, (end + 1)..<nextEnd) { break }
+            end = nextEnd
+        }
+        return start..<end
+    }
+
+    /// Besteht der Bereich nur aus Leerzeichen und Tabs (oder ist leer)?
+    private static func isBlank<S: UTF16Source>(_ text: S, _ range: Range<Int>) -> Bool {
+        for i in range {
+            let u = text[i]
+            if u != TeXChar.space && u != TeXChar.tab && u != TeXChar.carriageReturn { return false }
+        }
+        return true
     }
 }
 
@@ -44,6 +113,244 @@ public enum SnippetInserter {
         selection: Range<Int>,
         inMath: Bool
     ) -> TextEdit {
-        fatalError("Noch nicht umgesetzt")
+        // Auswahl auf den Text begrenzen, damit nie ausserhalb gelesen wird.
+        let lower = min(max(0, selection.lowerBound), text.count)
+        let upper = min(max(lower, selection.upperBound), text.count)
+        switch snippet.placement {
+        case .inline:
+            return inlineEdit(snippet, in: text, lower: lower, upper: upper, inMath: inMath)
+        case .block:
+            return blockEdit(snippet, in: text, lower: lower, upper: upper, inMath: inMath)
+        }
+    }
+
+    // MARK: - Im Fliesstext
+
+    /// Baustein an der Cursorposition, z. B. `\frac{•}{•}` mitten in einer Formel.
+    private static func inlineEdit<S: UTF16Source>(
+        _ snippet: Snippet, in text: S, lower: Int, upper: Int, inMath: Bool
+    ) -> TextEdit {
+        var selected = text.string(in: lower..<upper)
+        let wrapInDollars = snippet.requiresMath && !inMath
+        // Ist die Auswahl selbst schon eine Formel `$x$`, wird sie ausgepackt –
+        // sonst entstünde `$\frac{$x$}{…}$`, und das versteht LaTeX nicht.
+        if wrapInDollars, let inner = innerFormula(of: selected) { selected = inner }
+
+        // Mehrzeilige Bausteine: Folgezeilen bekommen die Einrückung der aktuellen Zeile.
+        let indent = leadingWhitespace(of: text, lineContaining: lower)
+        var lines = snippet.body.components(separatedBy: "\n")
+        for index in lines.indices.dropFirst() where !lines[index].isEmpty {
+            lines[index] = indent + lines[index]
+        }
+        var body = fillSelectionToken(in: lines.joined(separator: "\n"), with: selected)
+        if wrapInDollars { body = "$" + body + "$" }
+
+        return TextEdit(
+            range: lower..<upper,
+            replacement: body,
+            selectionAfter: selectionAfterInsertion(of: body, at: lower)
+        )
+    }
+
+    // MARK: - Auf eigenen Zeilen
+
+    /// Baustein auf eigenen Zeilen, z. B. eine `align`-Umgebung.
+    private static func blockEdit<S: UTF16Source>(
+        _ snippet: Snippet, in text: S, lower: Int, upper: Int, inMath: Bool
+    ) -> TextEdit {
+        var lower = lower
+        var upper = upper
+        // Ganze Zeilen werden oft samt Zeilenumbruch markiert. Der Umbruch am Rand
+        // gehört nicht zum Inhalt, sonst entstünden leere Zeilen im Baustein.
+        if lower < upper, text[lower] == TeXChar.newline { lower += 1 }
+        if lower < upper, text[upper - 1] == TeXChar.newline { upper -= 1 }
+
+        let lineStart = text.lineStart(before: lower)
+        let lineEnd = text.lineEnd(after: upper)
+        let indent = leadingWhitespace(of: text, lineContaining: lower)
+
+        // Leerraum direkt vor und nach der Einfügestelle fällt weg, damit keine
+        // Leerzeichen am Zeilenende übrig bleiben.
+        var start = lower
+        while start > lineStart, isSpaceOrTab(text[start - 1]) { start -= 1 }
+        var end = upper
+        while end < lineEnd, isSpaceOrTab(text[end]) { end += 1 }
+        let hasTextBefore = start > lineStart
+        let hasTextAfter = end < lineEnd
+
+        // Jede Zeile des Bausteins bekommt die Einrückung der aktuellen Zeile.
+        var body = snippet.body
+        if snippet.requiresMath && !inMath { body = "$" + body + "$" }
+        var lines = body.components(separatedBy: "\n").map { $0.isEmpty ? "" : indent + $0 }
+
+        // Markierte Zeilen wandern an die Stelle von ⟦⟧, sonst wird daraus ein Platzhalter.
+        // Beginnt die Auswahl am Zeilenanfang (nur Leerraum davor), zählt die
+        // Einrückung der ersten Zeile mit – darum ab `lineStart` lesen.
+        let markedLines = selectedLines(
+            in: text,
+            from: hasTextBefore ? lower : lineStart,
+            to: upper,
+            firstLineComplete: !hasTextBefore
+        )
+        if let tokenLine = lines.firstIndex(where: { $0.contains(Snippet.selectionToken) }), !markedLines.isEmpty {
+            lines.replaceSubrange(tokenLine...tokenLine, with: insert(markedLines, intoTokenLine: lines[tokenLine]))
+        }
+        // Weitere ⟦⟧ (falls ein Baustein mehrere hat) werden zu Platzhaltern.
+        let block = fillSelectionToken(in: lines.joined(separator: "\n"), with: "")
+
+        let prefix = hasTextBefore ? "\n" : ""
+        let suffix = hasTextAfter ? "\n" + indent : ""
+        let blockStart = start + prefix.utf16.count
+        return TextEdit(
+            range: start..<end,
+            replacement: prefix + block + suffix,
+            selectionAfter: selectionAfterInsertion(of: block, at: blockStart)
+        )
+    }
+
+    /// Die markierten Zeilen ohne gemeinsame Einrückung (leere Zeilen werden zu "").
+    /// Leer, wenn nichts (oder nur Leerraum) markiert ist.
+    ///
+    /// - Parameter firstLineComplete: `false`, wenn die Auswahl mitten in einer Zeile
+    ///   beginnt. Dann zählt die erste Zeile beim Ausrücken nicht mit.
+    private static func selectedLines<S: UTF16Source>(
+        in text: S, from start: Int, to end: Int, firstLineComplete: Bool
+    ) -> [String] {
+        var lines = text.string(in: start..<end).components(separatedBy: "\n").map { line -> String in
+            // Leerraum am Zeilenende ist unsichtbar und wird entfernt.
+            var trimmed = Substring(line)
+            while let last = trimmed.last, last == " " || last == "\t" || last == "\r" { trimmed.removeLast() }
+            return String(trimmed)
+        }
+        var firstComplete = firstLineComplete
+        if !firstComplete, let first = lines.first {
+            // Die erste Zeile beginnt mitten im Text: ihre Einrückung zählt nicht.
+            lines[0] = String(first.drop(while: isIndentation))
+        }
+        // Leere Zeilen am Anfang und Ende der Auswahl gehören nicht in den Baustein.
+        while lines.first?.isEmpty == true {
+            lines.removeFirst()
+            firstComplete = true
+        }
+        while lines.last?.isEmpty == true { lines.removeLast() }
+        guard !lines.isEmpty else { return [] }
+
+        // Gemeinsame Einrückung aller vollständigen, nicht leeren Zeilen entfernen.
+        let measured = firstComplete ? lines[...] : lines.dropFirst()
+        let common = measured.filter { !$0.isEmpty }.map { $0.prefix(while: isIndentation).count }.min() ?? 0
+        return lines.enumerated().map { index, line in
+            if index == 0 && !firstComplete { return line }
+            return line.isEmpty ? "" : String(line.dropFirst(common))
+        }
+    }
+
+    /// Setzt die markierten Zeilen an die Stelle von ⟦⟧ in `tokenLine`.
+    ///
+    /// Folgezeilen werden wie die Zeile mit ⟦⟧ eingerückt. Steht davor ein `\item`
+    /// (Aufzählung), wird jede markierte Zeile zu einem eigenen Punkt – so wie man es
+    /// aus Textverarbeitungen kennt.
+    private static func insert(_ lines: [String], intoTokenLine tokenLine: String) -> [String] {
+        guard let tokenRange = tokenLine.range(of: Snippet.selectionToken) else { return [tokenLine] }
+        let head = String(tokenLine[..<tokenRange.lowerBound])
+        let tail = String(tokenLine[tokenRange.upperBound...])
+        let lineIndent = String(tokenLine.prefix(while: isIndentation))
+
+        let containsEnvironment = lines.contains { $0.contains("\\begin{") || $0.contains("\\end{") }
+        if head.trimmingCharacters(in: .whitespaces) == "\\item", !containsEnvironment {
+            // Jede nicht leere Zeile wird ein eigener Punkt.
+            let items = lines
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+            var result: [String] = []
+            for (index, item) in items.enumerated() {
+                if index == 0 {
+                    result.append(head + removingItemCommand(from: item))
+                } else if startsWithItemCommand(item) {
+                    result.append(lineIndent + item)
+                } else {
+                    result.append(lineIndent + "\\item " + item)
+                }
+            }
+            result[result.count - 1] += tail
+            return result
+        }
+
+        var result: [String] = []
+        for (index, line) in lines.enumerated() {
+            if index == 0 {
+                result.append(head + line)
+            } else {
+                result.append(line.isEmpty ? "" : lineIndent + line)
+            }
+        }
+        result[result.count - 1] += tail
+        return result
+    }
+
+    /// Beginnt die Zeile mit dem Befehl `\item` (nicht z. B. `\itemsep`)?
+    private static func startsWithItemCommand(_ line: String) -> Bool {
+        guard line.hasPrefix("\\item") else { return false }
+        guard let next = line.dropFirst(5).first else { return true }
+        return !(next.isASCII && next.isLetter)
+    }
+
+    /// `\item Text` → `Text` (das `\item` steht im Baustein schon da).
+    private static func removingItemCommand(from line: String) -> String {
+        guard startsWithItemCommand(line) else { return line }
+        return String(line.dropFirst(5).drop { $0 == " " || $0 == "\t" })
+    }
+
+    // MARK: - Hilfsfunktionen
+
+    /// Ersetzt das erste ⟦⟧ durch `selected` (bzw. einen Platzhalter, wenn nichts
+    /// markiert ist) und alle weiteren durch Platzhalter.
+    private static func fillSelectionToken(in body: String, with selected: String) -> String {
+        guard let first = body.range(of: Snippet.selectionToken) else { return body }
+        let replacement = selected.isEmpty ? Placeholders.marker : selected
+        let head = String(body[..<first.lowerBound])
+        let tail = String(body[first.upperBound...])
+            .replacingOccurrences(of: Snippet.selectionToken, with: Placeholders.marker)
+        return head + replacement + tail
+    }
+
+    /// Erster Platzhalter im eingefügten Text (ausgewählt), sonst der Cursor an dessen Ende.
+    private static func selectionAfterInsertion(of inserted: String, at start: Int) -> Range<Int> {
+        let units = Array(inserted.utf16)
+        if let index = units.firstIndex(of: Placeholders.unit) {
+            return (start + index)..<(start + index + 1)
+        }
+        let end = start + units.count
+        return end..<end
+    }
+
+    /// `$x$` → `x`; `nil`, wenn der Text keine einzelne Formel in `$…$` ist.
+    private static func innerFormula(of selected: String) -> String? {
+        let units = Array(selected.utf16)
+        guard units.count >= 2,
+              units.first == TeXChar.dollar,
+              units.last == TeXChar.dollar,
+              !units.isEscaped(at: units.count - 1) else { return nil }
+        // Kein `$$…$$` und kein weiteres `$` dazwischen (sonst wären es zwei Formeln).
+        for i in 1..<(units.count - 1) where units[i] == TeXChar.dollar && !units.isEscaped(at: i) {
+            return nil
+        }
+        return units.string(in: 1..<(units.count - 1))
+    }
+
+    /// Führender Leerraum (Leerzeichen/Tabs) der Zeile, in der `position` liegt.
+    private static func leadingWhitespace<S: UTF16Source>(of text: S, lineContaining position: Int) -> String {
+        let start = text.lineStart(before: position)
+        var end = start
+        while end < text.count, isSpaceOrTab(text[end]) { end += 1 }
+        return text.string(in: start..<end)
+    }
+
+    private static func isSpaceOrTab(_ u: UInt16) -> Bool {
+        u == TeXChar.space || u == TeXChar.tab
+    }
+
+    /// Gehört das Zeichen zur Einrückung (Leerzeichen oder Tab)?
+    private static func isIndentation(_ character: Character) -> Bool {
+        character == " " || character == "\t"
     }
 }
