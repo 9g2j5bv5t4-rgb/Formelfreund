@@ -32,7 +32,9 @@ jobs:
           xcodebuild -version
 
       - name: Logik testen (LaTeXKit)
-        run: swift test --package-path Packages/LaTeXKit
+        run: |
+          set -o pipefail
+          swift test --package-path Packages/LaTeXKit 2>&1 | tee test.log
 
       - name: App bauen
         run: |
@@ -61,7 +63,25 @@ jobs:
         if: always()
         with:
           name: xcodebuild-log
-          path: xcodebuild.log
+          path: |
+            xcodebuild.log
+            test.log
+
+      # Protokolle zusätzlich als internes Vorab-Release, damit sie auch ohne
+      # Zugriff auf die Actions-Oberfläche lesbar sind (z. B. für Claude).
+      - name: Protokolle veröffentlichen
+        if: always() && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          touch xcodebuild.log test.log
+          grep -E "(error|warning):" xcodebuild.log | sort -u > diagnostics.txt || true
+          gh release delete ci-log --yes --cleanup-tag || true
+          gh release create ci-log xcodebuild.log test.log diagnostics.txt \
+            --prerelease \
+            --target "$GITHUB_SHA" \
+            --title "CI-Protokoll (intern)" \
+            --notes "Protokolle des letzten Builds von ${GITHUB_REF_NAME} ($(git rev-parse --short HEAD)), Ergebnis: ${{ job.status }}. Nicht zum Installieren gedacht."
 
       - name: Als "latest" veröffentlichen
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
