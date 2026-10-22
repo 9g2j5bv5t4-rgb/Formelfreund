@@ -114,8 +114,17 @@ public enum SnippetInserter {
         inMath: Bool
     ) -> TextEdit {
         // Auswahl auf den Text begrenzen, damit nie ausserhalb gelesen wird.
-        let lower = min(max(0, selection.lowerBound), text.count)
-        let upper = min(max(lower, selection.upperBound), text.count)
+        var lower = min(max(0, selection.lowerBound), text.count)
+        var upper = min(max(lower, selection.upperBound), text.count)
+        // Nie zwischen die beiden UTF-16-Hälften eines Zeichens wie 😀 schneiden:
+        // Eine Auswahl wächst auf ganze Zeichen, ein Cursor rutscht vor das Zeichen.
+        let isCursor = lower == upper
+        if splitsSurrogatePair(text, at: lower) { lower -= 1 }
+        if isCursor {
+            upper = lower
+        } else if splitsSurrogatePair(text, at: upper) {
+            upper += 1
+        }
         switch snippet.placement {
         case .inline:
             return inlineEdit(snippet, in: text, lower: lower, upper: upper, inMath: inMath)
@@ -130,20 +139,57 @@ public enum SnippetInserter {
     private static func inlineEdit<S: UTF16Source>(
         _ snippet: Snippet, in text: S, lower: Int, upper: Int, inMath: Bool
     ) -> TextEdit {
+        // Leerraum am Rand der Auswahl bleibt, wo er ist: `«Wort »weiter` wird zu
+        // `\footnote{Wort} weiter`, nicht zu `\footnote{Wort }weiter`. Eine Auswahl nur aus
+        // Leerraum (etwa eine Leerzeile) zählt wie ein Cursor an ihrem Anfang – sonst
+        // landete ein Absatzwechsel mitten in einer Formel.
+        var lower = lower
+        var upper = upper
+        var contentStart = lower
+        while contentStart < upper, TeXChar.isWhitespace(text[contentStart]) { contentStart += 1 }
+        if contentStart == upper {
+            upper = lower
+        } else {
+            lower = contentStart
+            while TeXChar.isWhitespace(text[upper - 1]) { upper -= 1 }
+        }
+
         var selected = text.string(in: lower..<upper)
         let wrapInDollars = snippet.requiresMath && !inMath
-        // Ist die Auswahl selbst schon eine Formel `$x$`, wird sie ausgepackt –
-        // sonst entstünde `$\frac{$x$}{…}$`, und das versteht LaTeX nicht.
-        if wrapInDollars, let inner = innerFormula(of: selected) { selected = inner }
 
         // Mehrzeilige Bausteine: Folgezeilen bekommen die Einrückung der aktuellen Zeile.
         let indent = leadingWhitespace(of: text, lineContaining: lower)
-        var lines = snippet.body.components(separatedBy: "\n")
+        var lines = splitLines(snippet.body)
         for index in lines.indices.dropFirst() where !lines[index].isEmpty {
             lines[index] = indent + lines[index]
         }
-        var body = fillSelectionToken(in: lines.joined(separator: "\n"), with: selected)
+        var body = lines.joined(separator: "\n")
         if wrapInDollars { body = "$" + body + "$" }
+
+        // Endet die Auswahl mit einem Kommentar (`a % b`), wandert er ans Ende des Bausteins.
+        // Sonst wäre der Rest des Bausteins auskommentiert, z. B. in `\frac{a % b}{•}`.
+        // Ersetzt der Baustein die Auswahl, bleibt der Kommentar so erhalten – und mit
+        // ihm der Rest der Zeile, der ja ebenfalls zum Kommentar gehört.
+        var comment = ""
+        if !body.hasSuffix(Snippet.selectionToken), let split = splitTrailingComment(selected) {
+            selected = split.content
+            comment = " " + split.comment
+        }
+        // Ist die Auswahl selbst schon eine Formel `$x$`, wird sie ausgepackt –
+        // sonst entstünde `$\frac{$x$}{…}$`, und das versteht LaTeX nicht.
+        if wrapInDollars, let inner = innerFormula(of: selected) { selected = inner }
+        body = fillSelectionToken(in: body, with: selected) + comment
+
+        // Ein Befehlsname darf nicht mit einem Buchstaben dahinter (oder davor) verschmelzen:
+        // `\rVert` vor `x` ergäbe den unbekannten Befehl `\rVertx`. Ein Leerzeichen trennt
+        // die beiden; nach einem Befehlsnamen verschluckt LaTeX es ohnehin.
+        let units = Array(body.utf16)
+        if let next = text.unit(at: upper), isTeXLetter(next), endsWithCommandName(units, before: units.count) {
+            body += " "
+        }
+        if let first = units.first, isTeXLetter(first), endsWithCommandName(text, before: lower) {
+            body = " " + body
+        }
 
         return TextEdit(
             range: lower..<upper,
@@ -160,13 +206,24 @@ public enum SnippetInserter {
     ) -> TextEdit {
         var lower = lower
         var upper = upper
-        // Ganze Zeilen werden oft samt Zeilenumbruch markiert. Der Umbruch am Rand
-        // gehört nicht zum Inhalt, sonst entstünden leere Zeilen im Baustein.
-        if lower < upper, text[lower] == TeXChar.newline { lower += 1 }
-        if lower < upper, text[upper - 1] == TeXChar.newline { upper -= 1 }
+        // Ganze Zeilen werden oft samt Zeilenumbruch (`\n` oder `\r\n`) markiert. Der Umbruch
+        // am Rand gehört nicht zum Inhalt, sonst entstünden leere Zeilen im Baustein.
+        if upper - lower >= 2, text[lower] == TeXChar.carriageReturn, text[lower + 1] == TeXChar.newline {
+            lower += 2
+        } else if lower < upper, text[lower] == TeXChar.newline {
+            lower += 1
+        }
+        if lower < upper, text[upper - 1] == TeXChar.newline {
+            upper -= 1
+            if lower < upper, text[upper - 1] == TeXChar.carriageReturn { upper -= 1 }
+        }
 
         let lineStart = text.lineStart(before: lower)
         let lineEnd = text.lineEnd(after: upper)
+        // Bei Windows-Zeilenenden gehört das `\r` vor dem `\n` zum Umbruch, nicht zum Text –
+        // sonst entstünde nach dem Baustein eine Leerzeile (und damit ein neuer Absatz).
+        var contentEnd = lineEnd
+        while contentEnd > upper, text[contentEnd - 1] == TeXChar.carriageReturn { contentEnd -= 1 }
         let indent = leadingWhitespace(of: text, lineContaining: lower)
 
         // Leerraum direkt vor und nach der Einfügestelle fällt weg, damit keine
@@ -174,14 +231,16 @@ public enum SnippetInserter {
         var start = lower
         while start > lineStart, isSpaceOrTab(text[start - 1]) { start -= 1 }
         var end = upper
-        while end < lineEnd, isSpaceOrTab(text[end]) { end += 1 }
+        while end < contentEnd, isSpaceOrTab(text[end]) { end += 1 }
         let hasTextBefore = start > lineStart
-        let hasTextAfter = end < lineEnd
+        let hasTextAfter = end < contentEnd
 
-        // Jede Zeile des Bausteins bekommt die Einrückung der aktuellen Zeile.
-        var body = snippet.body
+        // Jede Zeile des Bausteins bekommt die Einrückung der aktuellen Zeile. Nur das erste ⟦⟧
+        // nimmt die Auswahl auf; weitere werden schon jetzt zu Platzhaltern, damit ein ⟦⟧ im
+        // markierten Text danach unangetastet bleibt.
+        var body = keepingFirstSelectionToken(snippet.body)
         if snippet.requiresMath && !inMath { body = "$" + body + "$" }
-        var lines = body.components(separatedBy: "\n").map { $0.isEmpty ? "" : indent + $0 }
+        var lines = splitLines(body).map { $0.isEmpty ? "" : indent + $0 }
 
         // Markierte Zeilen wandern an die Stelle von ⟦⟧, sonst wird daraus ein Platzhalter.
         // Beginnt die Auswahl am Zeilenanfang (nur Leerraum davor), zählt die
@@ -192,14 +251,17 @@ public enum SnippetInserter {
             to: upper,
             firstLineComplete: !hasTextBefore
         )
-        if let tokenLine = lines.firstIndex(where: { $0.contains(Snippet.selectionToken) }), !markedLines.isEmpty {
+        if let tokenLine = lines.firstIndex(where: { $0.contains(Snippet.selectionToken) }) {
             lines.replaceSubrange(tokenLine...tokenLine, with: insert(markedLines, intoTokenLine: lines[tokenLine]))
         }
-        // Weitere ⟦⟧ (falls ein Baustein mehrere hat) werden zu Platzhaltern.
-        let block = fillSelectionToken(in: lines.joined(separator: "\n"), with: "")
+        let block = lines.joined(separator: "\n")
 
+        // Stand der Rest der Zeile in einem Kommentar (`% Notiz| weiter`), bleibt er einer –
+        // sonst würde aus der Notiz auf der neuen Zeile plötzlich gesetzter Text.
+        let remainderIsComment = hasTextAfter
+            && (text.commentStart(inLineStartingAt: text.lineStart(before: end)).map { $0 < end } ?? false)
         let prefix = hasTextBefore ? "\n" : ""
-        let suffix = hasTextAfter ? "\n" + indent : ""
+        let suffix = hasTextAfter ? "\n" + indent + (remainderIsComment ? "% " : "") : ""
         let blockStart = start + prefix.utf16.count
         return TextEdit(
             range: start..<end,
@@ -216,7 +278,7 @@ public enum SnippetInserter {
     private static func selectedLines<S: UTF16Source>(
         in text: S, from start: Int, to end: Int, firstLineComplete: Bool
     ) -> [String] {
-        var lines = text.string(in: start..<end).components(separatedBy: "\n").map { line -> String in
+        var lines = splitLines(text.string(in: start..<end)).map { line -> String in
             // Leerraum am Zeilenende ist unsichtbar und wird entfernt.
             var trimmed = Substring(line)
             while let last = trimmed.last, last == " " || last == "\t" || last == "\r" { trimmed.removeLast() }
@@ -244,7 +306,8 @@ public enum SnippetInserter {
         }
     }
 
-    /// Setzt die markierten Zeilen an die Stelle von ⟦⟧ in `tokenLine`.
+    /// Setzt die markierten Zeilen an die Stelle von ⟦⟧ in `tokenLine`
+    /// (ohne markierte Zeilen: einen Platzhalter).
     ///
     /// Folgezeilen werden wie die Zeile mit ⟦⟧ eingerückt. Steht davor ein `\item`
     /// (Aufzählung), wird jede markierte Zeile zu einem eigenen Punkt – so wie man es
@@ -255,23 +318,37 @@ public enum SnippetInserter {
         let tail = String(tokenLine[tokenRange.upperBound...])
         let lineIndent = String(tokenLine.prefix(while: isIndentation))
 
+        // Endet die Auswahl mit einem Kommentar, kommt er ans Zeilenende hinter `tail` –
+        // sonst wäre z. B. die schliessende Klammer von `\section{Titel % Notiz}` auskommentiert.
+        var lines = lines
+        var comment = ""
+        if !tail.isEmpty, let last = lines.last, let split = splitTrailingComment(last) {
+            lines[lines.count - 1] = split.content
+            comment = " " + split.comment
+            while lines.last?.isEmpty == true { lines.removeLast() }
+        }
+        guard !lines.isEmpty else { return [head + Placeholders.marker + tail + comment] }
+
         let containsEnvironment = lines.contains { $0.contains("\\begin{") || $0.contains("\\end{") }
         if head.trimmingCharacters(in: .whitespaces) == "\\item", !containsEnvironment {
             // Jede nicht leere Zeile wird ein eigener Punkt.
             let items = lines
                 .map { $0.trimmingCharacters(in: .whitespaces) }
                 .filter { !$0.isEmpty }
+            guard !items.isEmpty else { return [head + Placeholders.marker + tail + comment] }
             var result: [String] = []
             for (index, item) in items.enumerated() {
                 if index == 0 {
-                    result.append(head + removingItemCommand(from: item))
+                    // Ein leerer erster Punkt (nur `\item` markiert) bekommt einen Platzhalter.
+                    let text = removingItemCommand(from: item)
+                    result.append(head + (text.isEmpty ? Placeholders.marker : text))
                 } else if startsWithItemCommand(item) {
                     result.append(lineIndent + item)
                 } else {
                     result.append(lineIndent + "\\item " + item)
                 }
             }
-            result[result.count - 1] += tail
+            result[result.count - 1] += tail + comment
             return result
         }
 
@@ -283,7 +360,7 @@ public enum SnippetInserter {
                 result.append(line.isEmpty ? "" : lineIndent + line)
             }
         }
-        result[result.count - 1] += tail
+        result[result.count - 1] += tail + comment
         return result
     }
 
@@ -303,14 +380,58 @@ public enum SnippetInserter {
     // MARK: - Hilfsfunktionen
 
     /// Ersetzt das erste ⟦⟧ durch `selected` (bzw. einen Platzhalter, wenn nichts
-    /// markiert ist) und alle weiteren durch Platzhalter.
+    /// markiert ist) und alle weiteren durch Platzhalter. Ein ⟦⟧ in `selected` bleibt stehen.
     private static func fillSelectionToken(in body: String, with selected: String) -> String {
+        var body = keepingFirstSelectionToken(body)
+        guard let token = body.range(of: Snippet.selectionToken) else { return body }
+        body.replaceSubrange(token, with: selected.isEmpty ? Placeholders.marker : selected)
+        return body
+    }
+
+    /// Lässt das erste ⟦⟧ stehen und macht aus allen weiteren Platzhalter.
+    private static func keepingFirstSelectionToken(_ body: String) -> String {
         guard let first = body.range(of: Snippet.selectionToken) else { return body }
-        let replacement = selected.isEmpty ? Placeholders.marker : selected
-        let head = String(body[..<first.lowerBound])
-        let tail = String(body[first.upperBound...])
-            .replacingOccurrences(of: Snippet.selectionToken, with: Placeholders.marker)
-        return head + replacement + tail
+        return String(body[..<first.upperBound])
+            + String(body[first.upperBound...]).replacingOccurrences(of: Snippet.selectionToken, with: Placeholders.marker)
+    }
+
+    /// Trennt einen Kommentar am Ende ab: `a % b` → (`a`, `% b`). Nur die letzte Zeile zählt,
+    /// denn ein Kommentar reicht bis zum Zeilenende; `\%` ist kein Kommentar.
+    private static func splitTrailingComment(_ string: String) -> (content: String, comment: String)? {
+        let units = Array(string.utf16)
+        let lastLineStart = (units.lastIndex(of: TeXChar.newline) ?? -1) + 1
+        guard let percent = units.commentStart(inLineStartingAt: lastLineStart) else { return nil }
+        var contentEnd = percent
+        while contentEnd > 0, TeXChar.isWhitespace(units[contentEnd - 1]) { contentEnd -= 1 }
+        return (units.string(in: 0..<contentEnd), units.string(in: percent..<units.count))
+    }
+
+    /// Zerlegt Text an jedem `\n` in Zeilen – auch innerhalb von `\r\n`, und zwar auf jeder
+    /// Plattform gleich (`components(separatedBy: "\n")` trennt `\r\n` unter Linux nicht).
+    private static func splitLines(_ string: String) -> [String] {
+        Array(string.utf16)
+            .split(separator: TeXChar.newline, omittingEmptySubsequences: false)
+            .map { String(decoding: $0, as: UTF16.self) }
+    }
+
+    /// Kann das Zeichen in einem Befehlsnamen stehen? Unter XeLaTeX zählen auch Umlaute dazu.
+    private static func isTeXLetter(_ u: UInt16) -> Bool {
+        if TeXChar.isASCIILetter(u) { return true }
+        guard u >= 0x80, let scalar = Unicode.Scalar(u) else { return false }
+        return scalar.properties.isAlphabetic
+    }
+
+    /// Endet der Text vor `end` mit einem Befehlsnamen wie `\rVert`? (`\\` ist keiner.)
+    private static func endsWithCommandName<T: UTF16Source>(_ text: T, before end: Int) -> Bool {
+        var start = end
+        while start > 0, isTeXLetter(text[start - 1]) { start -= 1 }
+        return start < end && start > 0 && text[start - 1] == TeXChar.backslash && !text.isEscaped(at: start - 1)
+    }
+
+    /// Liegt `index` zwischen den beiden UTF-16-Hälften eines Zeichens wie 😀?
+    private static func splitsSurrogatePair<S: UTF16Source>(_ text: S, at index: Int) -> Bool {
+        index > 0 && index < text.count
+            && UTF16.isLeadSurrogate(text[index - 1]) && UTF16.isTrailSurrogate(text[index])
     }
 
     /// Erster Platzhalter im eingefügten Text (ausgewählt), sonst der Cursor an dessen Ende.
