@@ -33,7 +33,7 @@ struct EditorView: NSViewRepresentable {
 
 /// Baut den Editor auf und verbindet ihn mit dem Arbeitsbereich.
 @MainActor
-final class EditorCoordinator: NSObject, @preconcurrency NSTextViewDelegate, NSTextStorageDelegate, EditorControlling {
+final class EditorCoordinator: NSObject, NSTextViewDelegate, NSTextStorageDelegate, EditorControlling {
     let workspace: DocumentWorkspace
     private(set) var textView: LaTeXTextView!
     private var scrollView: NSScrollView!
