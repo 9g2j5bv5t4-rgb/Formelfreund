@@ -1,0 +1,51 @@
+# Baut Formelfreund auf einem Mac-Server von GitHub und führt die Tests aus.
+# Ergebnis: die fertige App als ZIP unter "Actions" → Lauf → "Artifacts".
+name: Build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Xcode auswählen
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
+          echo "Verwende $XCODE"
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+
+      - name: Logik testen (LaTeXKit)
+        run: swift test --package-path Packages/LaTeXKit
+
+      - name: App bauen
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project Formelfreund.xcodeproj \
+            -scheme Formelfreund \
+            -configuration Release \
+            -destination 'platform=macOS,arch=arm64' \
+            -derivedDataPath build \
+            build 2>&1 | tee xcodebuild.log | grep -E "(error|warning):|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" xcodebuild.log
+
+      - name: App verpacken
+        run: ditto -c -k --keepParent build/Build/Products/Release/Formelfreund.app Formelfreund.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Formelfreund
+          path: Formelfreund.zip
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: xcodebuild-log
+          path: xcodebuild.log

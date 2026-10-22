@@ -1,0 +1,10 @@
+# Xcode
+xcuserdata/
+DerivedData/
+*.xcuserstate
+build/
+.build/
+.swiftpm/
+Packages/LaTeXKit/.build/
+Packages/LaTeXKit/.testlog
+.DS_Store
