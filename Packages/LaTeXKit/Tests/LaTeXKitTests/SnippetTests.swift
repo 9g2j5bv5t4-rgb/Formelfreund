@@ -945,7 +945,7 @@ struct SnippetEditValidityTests {
         "😀|😀", "«😀»", "x 😀|", "😀«a\n😀»😀",
         "% Kommentar|", "% Kom|mentar", "a «b % c» d", "«Titel % Notiz»", "50 \\% |Rabatt", "«a \\\\% b»",
         "«a • b»", "«a ⟦⟧ b»", "«⟦⟧»", "«•»", "«\\item»", "«\\item a\n\\item»",
-        "$x = |$", "$«a+b»$", "«$x$»", "$$|$$", "\\[\n  «a»\n\\]",
+        "$x = |$", "$«a+b»$", "«$x$»", "$$|$$", "\\[\n  «a»\n\\]", "$x$|", "|$x$", "$$x$$|", "« $y$ »",
         "Übung: |\n\nNächster Absatz", "   |   ", "\t|", "«   »", "a\n«  \n»b",
     ]
 
@@ -991,8 +991,15 @@ struct SnippetEditValidityTests {
                 func tokenCount(_ string: String) -> Int { string.components(separatedBy: Snippet.selectionToken).count - 1 }
                 #expect(tokenCount(result) == tokenCount(text) - (hasToken ? 0 : tokenCount(selected)), "\(label)")
                 #expect(linesWithTrailingWhitespace(result) <= linesWithTrailingWhitespace(text), "\(label)")
+                // Formel-Bausteine stehen danach in einer Formel – auch direkt neben einem `$…$`
+                // (`$x$$\frac{•}{•}$` sind für TeX wie für die Einfärbung zwei Formeln).
+                if snippet.requiresMath, inMath == tokenizerSaysMath, !context.hasPrefix("%") {
+                    let tokens = LaTeXTokenizer.tokenize(units)
+                    let probe = edit.selectionAfter.isEmpty ? edit.range.lowerBound + 1 : edit.selectionAfter.lowerBound
+                    #expect(tokens.isInsideMath(at: probe), "\(label)")
+                }
                 // Markierter Text landet im Baustein, sofern dieser eine Stelle dafür hat.
-                if hasToken, !(selected.hasPrefix("$") && selected.hasSuffix("$")) {
+                if hasToken, !selected.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("$") {
                     #expect(isSubsequenceIgnoringWhitespace(selected, of: edit.replacement), "\(label)")
                 }
                 // Bausteine auf eigenen Zeilen beginnen am Zeilenanfang und enden am Zeilenende.
