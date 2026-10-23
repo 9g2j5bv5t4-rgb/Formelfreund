@@ -27,7 +27,7 @@ public struct NSStringSource: UTF16Source {
 }
 
 extension UTF16Source {
-    /// Zeichen an `index` oder `nil`, falls außerhalb des Textes.
+    /// Zeichen an `index` oder `nil`, falls ausserhalb des Textes.
     @inlinable
     public func unit(at index: Int) -> UInt16? {
         index >= 0 && index < count ? self[index] : nil

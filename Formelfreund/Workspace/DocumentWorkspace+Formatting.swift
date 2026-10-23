@@ -145,18 +145,21 @@ extension DocumentWorkspace {
 
     /// Kopiert ein Bild in `<Dokumentordner>/Bilder/` (falls es nicht schon im
     /// Dokumentordner liegt) und liefert den Pfad relativ zum Dokument.
+    ///
+    /// LaTeX verträgt in Dateinamen keine Leer- und Sonderzeichen wie `%` oder `#`.
+    /// Solche Bilder werden deshalb unter einem bereinigten Namen kopiert.
     private static func copyIntoDocumentFolder(_ source: URL, documentDirectory: URL) throws -> String {
         let documentPath = documentDirectory.standardizedFileURL.path + "/"
         let sourcePath = source.standardizedFileURL.path
         if sourcePath.hasPrefix(documentPath) {
-            return String(sourcePath.dropFirst(documentPath.count))
+            let relative = String(sourcePath.dropFirst(documentPath.count))
+            if relative.unicodeScalars.allSatisfy(isSafeInPath) { return relative }
         }
         let fm = FileManager.default
         let folder = documentDirectory.appendingPathComponent("Bilder", isDirectory: true)
         try fm.createDirectory(at: folder, withIntermediateDirectories: true)
-        // LaTeX mag keine Leerzeichen in Dateinamen.
-        let baseName = source.deletingPathExtension().lastPathComponent.replacingOccurrences(of: " ", with: "-")
-        let ext = source.pathExtension.lowercased()
+        let baseName = sanitizedFileName(source.deletingPathExtension().lastPathComponent)
+        let ext = sanitizedFileName(source.pathExtension.lowercased())
         var target = folder.appendingPathComponent(baseName).appendingPathExtension(ext)
         var counter = 2
         while fm.fileExists(atPath: target.path) {
@@ -165,6 +168,25 @@ extension DocumentWorkspace {
         }
         try fm.copyItem(at: source, to: target)
         return "Bilder/" + target.lastPathComponent
+    }
+
+    /// Nur ASCII-Buchstaben, Ziffern, `-`, `_`, `.` und `/` sind in LaTeX-Pfaden unproblematisch.
+    private static func isSafeInPath(_ scalar: Unicode.Scalar) -> Bool {
+        scalar.isASCII && (CharacterSet.alphanumerics.contains(scalar) || "-_./".unicodeScalars.contains(scalar))
+    }
+
+    /// Ersetzt alles ausser Buchstaben, Ziffern, `-` und `_` durch `-` (Umlaute: ä → ae …).
+    private static func sanitizedFileName(_ name: String) -> String {
+        let transliterated = name
+            .replacingOccurrences(of: "ä", with: "ae").replacingOccurrences(of: "ö", with: "oe")
+            .replacingOccurrences(of: "ü", with: "ue").replacingOccurrences(of: "Ä", with: "Ae")
+            .replacingOccurrences(of: "Ö", with: "Oe").replacingOccurrences(of: "Ü", with: "Ue")
+            .replacingOccurrences(of: "ß", with: "ss")
+        let cleaned = String(String.UnicodeScalarView(transliterated.unicodeScalars.map { scalar in
+            scalar.isASCII && (CharacterSet.alphanumerics.contains(scalar) || scalar == "-" || scalar == "_") ? scalar : "-"
+        }))
+        let collapsed = cleaned.split(separator: "-", omittingEmptySubsequences: true).joined(separator: "-")
+        return collapsed.isEmpty ? "bild" : collapsed
     }
 
     // MARK: - Block-Werkzeuge
