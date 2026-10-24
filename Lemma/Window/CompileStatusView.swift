@@ -14,10 +14,15 @@ struct CompileStatusView: View {
                 icon
                 Text(title)
                     .lineLimit(1)
+                    .truncationMode(.tail)
                     .monospacedDigit()
             }
             .font(.callout)
             .padding(.horizontal, 4)
+            // Feste Breite: Die Symbolleiste soll nicht bei jeder Statusänderung
+            // neu angeordnet werden (das löste zusammen mit dem Fenster-Layout
+            // unnötige Layout-Durchgänge aus).
+            .frame(width: 230)
         }
         .buttonStyle(.borderless)
         .help("Meldungen anzeigen")

@@ -93,7 +93,7 @@ enum SelfTest {
             action()
             try? await Task.sleep(for: .seconds(pauses[index % pauses.count]))
         }
-        log("Überstanden: \(name)")
+        log("Überstanden: \(name) – \(windowDescription)")
     }
 
     private static func waitUntilFinished(_ workspace: DocumentWorkspace, timeout: TimeInterval) async {
@@ -112,7 +112,8 @@ enum SelfTest {
     private static var windowDescription: String {
         guard let window = documentWindow else { return "kein Fenster" }
         let screen = window.screen?.visibleFrame.size ?? .zero
-        return "Fenster \(Int(window.frame.width))×\(Int(window.frame.height)), Bildschirm \(Int(screen.width))×\(Int(screen.height))"
+        let minimum = window.contentMinSize
+        return "Fenster \(Int(window.frame.width))×\(Int(window.frame.height)) (mindestens \(Int(minimum.width))×\(Int(minimum.height))), Bildschirm \(Int(screen.width))×\(Int(screen.height))"
     }
 
     /// Bild des ganzen Fensters (inklusive Symbolleiste) als PNG.
