@@ -18,6 +18,8 @@ enum SelfTest {
         .map { URL(fileURLWithPath: $0) }
 
     private static var hasStarted = false
+    /// Gefundene Probleme, die keinen Absturz auslösen (z. B. zu breites Fenster).
+    private static var problems: [String] = []
 
     /// Beim Start der App aufrufen: Beendet die App spätestens nach acht Minuten,
     /// auch wenn kein Fenster aufgeht oder der Hauptthread hängt.
@@ -79,8 +81,13 @@ enum SelfTest {
         snapshot("inspektor", in: directory)
         log("Endzustand: \(workspace.status), \(windowDescription)")
 
-        log("FERTIG")
-        exit(0)
+        checkWindowFitsScreen(after: "Endzustand")
+        if problems.isEmpty {
+            log("FERTIG")
+            exit(0)
+        }
+        log("FEHLGESCHLAGEN: " + problems.joined(separator: "; "))
+        exit(1)
     }
 
     // MARK: - Hilfen
@@ -94,6 +101,7 @@ enum SelfTest {
             try? await Task.sleep(for: .seconds(pauses[index % pauses.count]))
         }
         log("Überstanden: \(name) – \(windowDescription)")
+        checkWindowFitsScreen(after: name)
     }
 
     private static func waitUntilFinished(_ workspace: DocumentWorkspace, timeout: TimeInterval) async {
@@ -102,6 +110,14 @@ enum SelfTest {
         try? await Task.sleep(for: .seconds(0.5))
         while workspace.isBusy || workspace.status == .idle, Date() < deadline {
             try? await Task.sleep(for: .seconds(0.25))
+        }
+    }
+
+    /// Das Fenster darf nie breiter oder höher werden als der Bildschirm.
+    private static func checkWindowFitsScreen(after phase: String) {
+        guard let window = documentWindow, let screen = window.screen?.visibleFrame else { return }
+        if window.frame.width > screen.width + 1 || window.frame.height > screen.height + 1 {
+            problems.append("Fenster grösser als der Bildschirm nach „\(phase)“")
         }
     }
 

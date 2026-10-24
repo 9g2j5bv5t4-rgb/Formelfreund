@@ -44,6 +44,9 @@ final class PDFPreviewCoordinator: PDFViewerControlling {
     let workspace: DocumentWorkspace
     weak var view: SyncPDFView?
     private var shownRevision = -1
+    /// PDFKit zeichnet Seiten im Hintergrund. Das vorige Dokument bleibt deshalb
+    /// bis zum nächsten Wechsel erhalten, statt mitten im Zeichnen zu verschwinden.
+    private var previousDocument: PDFDocument?
 
     init(workspace: DocumentWorkspace) {
         self.workspace = workspace
@@ -60,6 +63,7 @@ final class PDFPreviewCoordinator: PDFViewerControlling {
         let autoScales = view.autoScales
         let scale = view.scaleFactor
 
+        previousDocument = view.document
         view.document = document
 
         // … und nach dem Austausch wiederherstellen.

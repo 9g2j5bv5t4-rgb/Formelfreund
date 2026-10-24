@@ -263,8 +263,15 @@ final class DocumentWorkspace {
         }
         if showsPreview, let pdfViewer {
             pdfViewer.reveal(position)
+        } else if let pdfViewer {
+            // Vorschau ist ausgeblendet: einblenden und nach der Animation hinspringen.
+            showsPreview = true
+            Task { [weak pdfViewer] in
+                try? await Task.sleep(for: .milliseconds(300))
+                pdfViewer?.reveal(position)
+            }
         } else {
-            // Die Vorschau entsteht erst beim nächsten Neuzeichnen – Ziel bis dahin merken.
+            // Die PDF-Ansicht entsteht erst beim nächsten Neuzeichnen – Ziel bis dahin merken.
             pendingPDFReveal = position
             if !showsPreview { showsPreview = true }
         }

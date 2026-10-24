@@ -6,43 +6,27 @@ struct DocumentWindow: View {
     let fileURL: URL?
     @State private var workspace: DocumentWorkspace
 
-    /// Mindesthöhe jeder Spalte – unabhängig von ihrem Inhalt.
-    private static let minColumnHeight: CGFloat = 200
-
     init(document: TeXDocument, fileURL: URL?) {
         self.fileURL = fileURL
         _workspace = State(initialValue: DocumentWorkspace(document: document, fileURL: fileURL))
     }
 
-    // Wichtig für die Stabilität:
-    // - Jede Spalte bekommt feste Mindest- *und* Höchstmasse in beiden
-    //   Richtungen, damit ihre Mindestgrösse nicht vom Inhalt abhängt.
-    // - Alle Spalten zusammen (Seitenleiste 150 + Editor 280 + Vorschau 220 +
-    //   Inspektor 250) bleiben unter 1024 Punkten, passen also auch auf kleine
-    //   Bildschirme. Wäre das Fenster mindestens breiter als der Bildschirm,
-    //   schaukeln sich Fenster und Spalten gegenseitig auf, bis macOS die App
-    //   wegen einer endlosen Layout-Schleife beendet („Update Constraints in Window“).
     var body: some View {
         NavigationSplitView {
             OutlineSidebar(workspace: workspace)
-                .frame(minHeight: Self.minColumnHeight, maxHeight: .infinity)
+                .frame(minHeight: DocumentSplitView.Metrics.minHeight, maxHeight: .infinity)
                 .navigationSplitViewColumnWidth(min: 150, ideal: 200, max: 320)
         } detail: {
-            HSplitView {
-                EditorPane(workspace: workspace)
-                    .frame(minWidth: 280, maxWidth: .infinity, minHeight: Self.minColumnHeight, maxHeight: .infinity)
-                if workspace.showsPreview {
-                    PreviewPane(workspace: workspace)
-                        .frame(minWidth: 220, maxWidth: .infinity, minHeight: Self.minColumnHeight, maxHeight: .infinity)
-                }
-            }
+            // Editor, Vorschau und Inspektor in einer AppKit-Spaltenansicht
+            // (Begründung siehe DocumentSplitView). Alle Spalten zusammen
+            // passen auch auf Bildschirme mit 1024 Punkten Breite.
+            DocumentSplitView(
+                workspace: workspace,
+                showsPreview: workspace.showsPreview,
+                showsInspector: workspace.showsInspector
+            )
         }
         .frame(minHeight: 400)
-        .inspector(isPresented: $workspace.showsInspector) {
-            DocumentInspector(workspace: workspace)
-                .frame(minHeight: Self.minColumnHeight, maxHeight: .infinity)
-                .inspectorColumnWidth(min: 220, ideal: 250, max: 320)
-        }
         .toolbar {
             DocumentToolbar(workspace: workspace)
         }
