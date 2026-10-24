@@ -59,6 +59,59 @@ jobs:
           name: Lemma
           path: Lemma.zip
 
+      # Startet die fertige App, öffnet ein Testdokument und klickt schnell
+      # Vorschau, Inspektor und Kompilieren durch (siehe Lemma/App/SelfTest.swift).
+      # Kompiliert dabei echt mit Tectonic. Stürzt die App ab, schlägt der
+      # Schritt fehl und es wird kein neues "latest" veröffentlicht.
+      - name: Selbsttest (App starten, schnell klicken, kompilieren)
+        timeout-minutes: 12
+        run: |
+          OUT="$PWD/selftest"
+          mkdir -p "$OUT"
+          # Ausgabe dieses Schritts mitschreiben (landet im Release "ci-log").
+          exec > >(tee "$OUT/step.log") 2>&1
+          cat > "$OUT/Probe.tex" <<'EOF'
+          \documentclass[11pt,a4paper]{article}
+          \usepackage[ngerman]{babel}
+          \usepackage{amsmath,amssymb,amsthm}
+          \usepackage{lipsum}
+          \newtheorem{satz}{Satz}
+          \begin{document}
+          \section{Grundlagen}
+          Für alle $n \in \mathbb{N}$ gilt die Gaußsche Summenformel:
+          \begin{equation}
+            \sum_{k=1}^{n} k = \frac{n(n+1)}{2}
+          \end{equation}
+          \begin{satz}
+            Es gibt unendlich viele Primzahlen.
+          \end{satz}
+          \begin{proof} Angenommen, es gäbe nur endlich viele. \end{proof}
+          \lipsum[1-12]
+          \section{Matrizen}
+          \[ A = \begin{pmatrix} 1 & 2 \\ 3 & 4 \end{pmatrix} \]
+          \lipsum[13-24]
+          \end{document}
+          EOF
+          rm -f ~/Library/Logs/DiagnosticReports/Lemma* 2>/dev/null || true
+          APP="$PWD/build/Build/Products/Release/Lemma.app"
+          open -n --env "LEMMA_SELFTEST=$OUT/selftest.log" \
+            --stdout "$OUT/app-stdout.log" --stderr "$OUT/app-stderr.log" \
+            -a "$APP" "$OUT/Probe.tex"
+          # Warten, bis die App sich selbst beendet (höchstens 9 Minuten).
+          sleep 5
+          for _ in $(seq 1 540); do
+            pgrep -xq Lemma || break
+            sleep 1
+          done
+          pkill -x Lemma 2>/dev/null || true
+          # Absturzberichte werden mit kurzer Verzögerung geschrieben.
+          sleep 10
+          cp ~/Library/Logs/DiagnosticReports/Lemma* "$OUT/" 2>/dev/null || true
+          echo "--- Selbsttest ---"
+          cat "$OUT/selftest.log" 2>/dev/null || echo "(kein Protokoll)"
+          ls -la "$OUT"
+          grep -q "^FERTIG" "$OUT/selftest.log"
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -66,6 +119,7 @@ jobs:
           path: |
             xcodebuild.log
             test.log
+            selftest/
 
       # Protokolle zusätzlich als internes Vorab-Release, damit sie auch ohne
       # Zugriff auf die Actions-Oberfläche lesbar sind (z. B. für Claude).
@@ -76,8 +130,11 @@ jobs:
         run: |
           touch xcodebuild.log test.log
           grep -E "(error|warning):" xcodebuild.log | sort -u > diagnostics.txt || true
+          # Selbsttest-Ergebnisse (Protokoll, Bildschirmfotos, Absturzberichte) mitliefern.
+          mkdir -p selftest
+          SELFTEST_FILES=$(find selftest -type f ! -name Probe.tex)
           gh release delete ci-log --yes --cleanup-tag || true
-          gh release create ci-log xcodebuild.log test.log diagnostics.txt \
+          gh release create ci-log xcodebuild.log test.log diagnostics.txt $SELFTEST_FILES \
             --prerelease \
             --target "$GITHUB_SHA" \
             --title "CI-Protokoll (intern)" \

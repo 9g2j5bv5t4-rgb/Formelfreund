@@ -8,6 +8,7 @@ import SwiftUI
 struct LemmaApp: App {
     init() {
         AppSettings.registerDefaults()
+        SelfTest.startWatchdog()
     }
 
     var body: some Scene {

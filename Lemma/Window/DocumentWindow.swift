@@ -45,6 +45,8 @@ struct DocumentWindow: View {
             if AppSettings.autoCompile && workspace.status == .idle {
                 workspace.compile()
             }
+            // Nur in der CI aktiv (siehe SelfTest).
+            await SelfTest.runIfEnabled(workspace)
         }
     }
 }
