@@ -65,7 +65,14 @@ enum SelfTest {
         await repeatAction("Gemischt", times: 90) { actions.randomElement()!() }
         await waitUntilFinished(workspace, timeout: 120)
 
-        // 3. Endzustand mit allen Bereichen zeigen.
+        // 3. Kleines Fenster wie auf einem 13-Zoll-Bildschirm (macOS hält die Mindestgrösse ein).
+        documentWindow?.setContentSize(NSSize(width: 700, height: 500))
+        try? await Task.sleep(for: .seconds(0.5))
+        log("Kleines Fenster: \(windowDescription)")
+        await repeatAction("Gemischt im kleinen Fenster", times: 40) { actions.randomElement()!() }
+        await waitUntilFinished(workspace, timeout: 120)
+
+        // 4. Endzustand mit allen Bereichen zeigen.
         workspace.showsPreview = true
         workspace.showsInspector = true
         try? await Task.sleep(for: .seconds(1.5))

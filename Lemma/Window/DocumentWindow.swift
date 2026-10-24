@@ -6,28 +6,39 @@ struct DocumentWindow: View {
     let fileURL: URL?
     @State private var workspace: DocumentWorkspace
 
+    /// Mindesthöhe jeder Spalte – unabhängig von ihrem Inhalt.
+    private static let minColumnHeight: CGFloat = 200
+
     init(document: TeXDocument, fileURL: URL?) {
         self.fileURL = fileURL
         _workspace = State(initialValue: DocumentWorkspace(document: document, fileURL: fileURL))
     }
 
+    // Wichtig: Jede Spalte bekommt feste Mindest- *und* Höchstmasse in beiden
+    // Richtungen. Sonst hängt ihre Mindestgrösse vom Inhalt ab (z. B. von der
+    // Variante der Format-Leiste, die wiederum von der Breite abhängt). Beim
+    // Ein- und Ausblenden von Inspektor oder Vorschau schaukeln sich die
+    // Spalten dann gegenseitig auf, bis macOS die App wegen einer endlosen
+    // Layout-Schleife beendet („Update Constraints in Window“).
     var body: some View {
         NavigationSplitView {
             OutlineSidebar(workspace: workspace)
+                .frame(minHeight: Self.minColumnHeight, maxHeight: .infinity)
                 .navigationSplitViewColumnWidth(min: 160, ideal: 220, max: 340)
         } detail: {
             HSplitView {
                 EditorPane(workspace: workspace)
-                    .frame(minWidth: 300, maxWidth: .infinity, maxHeight: .infinity)
+                    .frame(minWidth: 300, maxWidth: .infinity, minHeight: Self.minColumnHeight, maxHeight: .infinity)
                 if workspace.showsPreview {
                     PreviewPane(workspace: workspace)
-                        .frame(minWidth: 240, maxWidth: .infinity, maxHeight: .infinity)
+                        .frame(minWidth: 240, maxWidth: .infinity, minHeight: Self.minColumnHeight, maxHeight: .infinity)
                 }
             }
         }
         .frame(minWidth: 760, minHeight: 480)
         .inspector(isPresented: $workspace.showsInspector) {
             DocumentInspector(workspace: workspace)
+                .frame(minHeight: Self.minColumnHeight, maxHeight: .infinity)
                 .inspectorColumnWidth(min: 230, ideal: 270, max: 340)
         }
         .toolbar {

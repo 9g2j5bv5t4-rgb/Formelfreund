@@ -21,8 +21,12 @@ struct FormatBar: View {
             fullLayout
             mediumLayout
             compactLayout
+            // Menüs nur noch als Symbol (Name erscheint als Hilfetext).
+            compactLayout.labelStyle(.iconOnly)
             // Notlösung für sehr schmale Spalten: seitlich scrollbar.
-            ScrollView(.horizontal, showsIndicators: false) { compactLayout }
+            ScrollView(.horizontal, showsIndicators: false) {
+                compactLayout.labelStyle(.iconOnly)
+            }
         }
         .background(.bar)
         .overlay(alignment: .bottom) { Divider() }
