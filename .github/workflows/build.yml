@@ -94,9 +94,13 @@ jobs:
           EOF
           rm -f ~/Library/Logs/DiagnosticReports/Lemma* 2>/dev/null || true
           APP="$PWD/build/Build/Products/Release/Lemma.app"
-          open -n --env "LEMMA_SELFTEST=$OUT/selftest.log" \
-            --stdout "$OUT/app-stdout.log" --stderr "$OUT/app-stderr.log" \
-            -a "$APP" "$OUT/Probe.tex"
+          if ! open -n --env "LEMMA_SELFTEST=$OUT/selftest.log" \
+              --stdout "$OUT/app-stdout.log" --stderr "$OUT/app-stderr.log" \
+              -a "$APP" "$OUT/Probe.tex"; then
+            echo "open --env klappt nicht – starte die App direkt"
+            LEMMA_SELFTEST="$OUT/selftest.log" "$APP/Contents/MacOS/Lemma" "$OUT/Probe.tex" \
+              > "$OUT/app-stdout.log" 2> "$OUT/app-stderr.log" &
+          fi
           # Warten, bis die App sich selbst beendet (höchstens 9 Minuten).
           sleep 5
           for _ in $(seq 1 540); do
@@ -130,15 +134,18 @@ jobs:
         run: |
           touch xcodebuild.log test.log
           grep -E "(error|warning):" xcodebuild.log | sort -u > diagnostics.txt || true
-          # Selbsttest-Ergebnisse (Protokoll, Bildschirmfotos, Absturzberichte) mitliefern.
-          mkdir -p selftest
-          SELFTEST_FILES=$(find selftest -type f ! -name Probe.tex)
+          [ -s diagnostics.txt ] || echo "Keine Fehler oder Warnungen." > diagnostics.txt
           gh release delete ci-log --yes --cleanup-tag || true
-          gh release create ci-log xcodebuild.log test.log diagnostics.txt $SELFTEST_FILES \
+          gh release create ci-log xcodebuild.log test.log diagnostics.txt \
             --prerelease \
             --target "$GITHUB_SHA" \
             --title "CI-Protokoll (intern)" \
             --notes "Protokolle des letzten Builds von ${GITHUB_REF_NAME} ($(git rev-parse --short HEAD)), Ergebnis: ${{ job.status }}. Nicht zum Installieren gedacht."
+          # Selbsttest-Ergebnisse (Protokoll, Bildschirmfotos, Absturzberichte) einzeln
+          # hochladen: Leere Dateien lehnt GitHub ab, das soll den Rest nicht verhindern.
+          for FILE in $(find selftest -type f -size +0 ! -name Probe.tex 2>/dev/null); do
+            gh release upload ci-log "$FILE" --clobber || echo "Nicht hochgeladen: $FILE"
+          done
 
       - name: Als "latest" veröffentlichen
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
