@@ -1,6 +1,6 @@
 // swift-tools-version: 6.2
 //
-// LaTeXKit – die UI-freie Logik von Formelfreund.
+// LaTeXKit – die UI-freie Logik von Lemma.
 //
 // Alles, was nichts mit Fenstern, Knöpfen oder AppKit zu tun hat, lebt hier:
 // Syntax-Analyse, Gliederung, Bearbeitungshilfen, Aufruf der TeX-Engines,

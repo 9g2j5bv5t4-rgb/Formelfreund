@@ -1,5 +1,5 @@
 #!/bin/sh
-# Baut Formelfreund aus dem Quelltext, installiert die App und startet sie.
+# Baut Lemma aus dem Quelltext, installiert die App und startet sie.
 # Nur nötig, wenn du selbst am Code arbeitest – zum Ausprobieren genügt install.sh.
 #
 #   ./Scripts/build-and-run.sh          # bauen, testen, installieren, starten
@@ -26,8 +26,8 @@ say "Baue die App (das erste Mal dauert etwa eine Minute) …"
 LOG="build/xcodebuild.log"
 mkdir -p build
 if ! xcodebuild \
-        -project Formelfreund.xcodeproj \
-        -scheme Formelfreund \
+        -project Lemma.xcodeproj \
+        -scheme Lemma \
         -configuration Release \
         -destination 'platform=macOS,arch=arm64' \
         -derivedDataPath build \
@@ -37,4 +37,4 @@ if ! xcodebuild \
 fi
 
 say "Installiere und starte …"
-sh Scripts/install.sh build/Build/Products/Release/Formelfreund.app
+sh Scripts/install.sh build/Build/Products/Release/Lemma.app

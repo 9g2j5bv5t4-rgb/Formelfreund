@@ -14,21 +14,21 @@ struct DocumentWindow: View {
     var body: some View {
         NavigationSplitView {
             OutlineSidebar(workspace: workspace)
-                .navigationSplitViewColumnWidth(min: 180, ideal: 230, max: 360)
+                .navigationSplitViewColumnWidth(min: 160, ideal: 220, max: 340)
         } detail: {
             HSplitView {
                 EditorPane(workspace: workspace)
-                    .frame(minWidth: 320, maxWidth: .infinity, maxHeight: .infinity)
+                    .frame(minWidth: 300, maxWidth: .infinity, maxHeight: .infinity)
                 if workspace.showsPreview {
                     PreviewPane(workspace: workspace)
-                        .frame(minWidth: 280, maxWidth: .infinity, maxHeight: .infinity)
+                        .frame(minWidth: 240, maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
         }
-        .frame(minWidth: 860, minHeight: 520)
+        .frame(minWidth: 760, minHeight: 480)
         .inspector(isPresented: $workspace.showsInspector) {
             DocumentInspector(workspace: workspace)
-                .inspectorColumnWidth(min: 240, ideal: 280, max: 360)
+                .inspectorColumnWidth(min: 230, ideal: 270, max: 340)
         }
         .toolbar {
             DocumentToolbar(workspace: workspace)

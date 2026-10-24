@@ -4,7 +4,7 @@ import Testing
 
 // MARK: - Hilfen
 
-/// Die Präambel eines neuen Dokuments in Formelfreund.
+/// Die Präambel eines neuen Dokuments in Lemma.
 private let starter = """
 \\documentclass[a4paper,11pt]{article}
 \\usepackage[ngerman]{babel}

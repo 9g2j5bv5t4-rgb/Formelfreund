@@ -101,7 +101,7 @@ struct EngineSetupView: View {
                 .foregroundStyle(.tint)
             Text("LaTeX wird eingerichtet")
                 .font(.title3.weight(.semibold))
-            Text("Beim ersten Mal lädt Formelfreund die LaTeX-Engine Tectonic (ca. 22 MB). Danach werden fehlende Pakete bei Bedarf automatisch nachgeladen.")
+            Text("Beim ersten Mal lädt Lemma die LaTeX-Engine Tectonic (ca. 22 MB). Danach werden fehlende Pakete bei Bedarf automatisch nachgeladen.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: 320)

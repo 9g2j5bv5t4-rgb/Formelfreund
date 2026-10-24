@@ -3,7 +3,7 @@ import UniformTypeIdentifiers
 
 extension UTType {
     /// LaTeX-Quelltext (`.tex`). In `Config/Info.plist` als importierter Typ deklariert,
-    /// damit Formelfreund dieselbe Kennung wie andere TeX-Programme verwendet.
+    /// damit Lemma dieselbe Kennung wie andere TeX-Programme verwendet.
     static let latexSource = UTType(importedAs: "org.tug.tex", conformingTo: .plainText)
 }
 

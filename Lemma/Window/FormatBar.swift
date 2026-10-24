@@ -13,25 +13,72 @@ struct FormatBar: View {
     private var state: FormatState { workspace.formatState }
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                paragraphStylePicker
-                separator
-                inlineStyleButtons
-                FontMenu(workspace: workspace)
-                separator
-                alignmentPicker
-                listButtons
-                indentButtons
-                separator
-                InsertMenu(workspace: workspace)
-                BlockMenu(workspace: workspace)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
+        // Die Leiste passt sich der Breite der Editorspalte an – wie in Pages:
+        // Ist wenig Platz, wandern Knöpfe gesammelt in ein Menü, statt
+        // abgeschnitten zu werden. `ViewThatFits` nimmt die erste Variante,
+        // die ganz hineinpasst.
+        ViewThatFits(in: .horizontal) {
+            fullLayout
+            mediumLayout
+            compactLayout
+            // Notlösung für sehr schmale Spalten: seitlich scrollbar.
+            ScrollView(.horizontal, showsIndicators: false) { compactLayout }
         }
         .background(.bar)
         .overlay(alignment: .bottom) { Divider() }
+    }
+
+    /// Alle Knöpfe einzeln sichtbar.
+    private var fullLayout: some View {
+        bar {
+            paragraphStylePicker
+            separator
+            inlineStyleButtons
+            FontMenu(workspace: workspace)
+            separator
+            alignmentPicker
+            listButtons
+            indentButtons
+            separator
+            InsertMenu(workspace: workspace)
+            BlockMenu(workspace: workspace)
+        }
+    }
+
+    /// Ausrichtung, Listen und Einrücken in einem Menü „Absatz“.
+    private var mediumLayout: some View {
+        bar {
+            paragraphStylePicker
+            separator
+            inlineStyleButtons
+            FontMenu(workspace: workspace)
+            ParagraphMenu(workspace: workspace)
+            separator
+            InsertMenu(workspace: workspace)
+            BlockMenu(workspace: workspace)
+        }
+    }
+
+    /// Nur Fett/Kursiv/Unterstrichen direkt, alles andere im Menü „Format“.
+    private var compactLayout: some View {
+        bar {
+            inlineStyleButtons
+            CompactFormatMenu(workspace: workspace)
+            separator
+            InsertMenu(workspace: workspace)
+            BlockMenu(workspace: workspace)
+        }
+    }
+
+    private func bar<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        HStack(spacing: 8) {
+            content()
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .fixedSize(horizontal: true, vertical: false)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var separator: some View {
@@ -141,46 +188,140 @@ struct FormatBar: View {
     }
 }
 
+// MARK: - Absatz-Menü (schmale Leiste)
+
+/// Ausrichtung, Listen und Einrücken als ein Menü.
+struct ParagraphMenu: View {
+    let workspace: DocumentWorkspace
+
+    var body: some View {
+        Menu {
+            ParagraphMenuItems(workspace: workspace)
+        } label: {
+            Label("Absatz", systemImage: workspace.formatState.paragraph.alignment.symbol)
+        }
+        .fixedSize()
+        .help("Ausrichtung, Listen und Einrücken")
+    }
+}
+
+/// Einträge für Ausrichtung, Listen und Einrücken.
+struct ParagraphMenuItems: View {
+    let workspace: DocumentWorkspace
+
+    private var state: FormatState { workspace.formatState }
+
+    var body: some View {
+        Section("Ausrichtung") {
+            ForEach(TextAlignment.allCases) { alignment in
+                Toggle(isOn: Binding(
+                    get: { state.paragraph.alignment == alignment },
+                    set: { _ in workspace.align(alignment) }
+                )) {
+                    Label(alignment.title, systemImage: alignment.symbol)
+                }
+            }
+        }
+        Section("Liste") {
+            ForEach(ListKind.allCases) { kind in
+                Toggle(isOn: Binding(
+                    get: { state.paragraph.list == kind },
+                    set: { _ in workspace.toggleList(kind) }
+                )) {
+                    Label(kind.title, systemImage: kind.symbol)
+                }
+            }
+        }
+        Section {
+            Button {
+                workspace.shiftIndentation(outdent: false)
+            } label: {
+                Label("Einrücken", systemImage: "increase.indent")
+            }
+            Button {
+                workspace.shiftIndentation(outdent: true)
+            } label: {
+                Label("Ausrücken", systemImage: "decrease.indent")
+            }
+        }
+    }
+}
+
+/// Absatzstil, Schrift und Absatz in einem Menü – für sehr schmale Spalten.
+struct CompactFormatMenu: View {
+    let workspace: DocumentWorkspace
+
+    var body: some View {
+        Menu {
+            Picker("Absatzstil", selection: Binding(
+                get: { workspace.formatState.paragraph.style },
+                set: { workspace.applyParagraphStyle($0) }
+            )) {
+                ForEach(ParagraphStyle.allCases) { style in
+                    Text(style.title).tag(style)
+                }
+            }
+            Divider()
+            FontMenuItems(workspace: workspace)
+            Divider()
+            ParagraphMenuItems(workspace: workspace)
+        } label: {
+            Label("Format", systemImage: "textformat")
+        }
+        .fixedSize()
+        .help("Absatzstil, Schrift, Ausrichtung und Listen")
+    }
+}
+
 // MARK: - Schrift-Menü
 
 /// Schriftstil, Grösse und Farbe.
 struct FontMenu: View {
     let workspace: DocumentWorkspace
 
-    private var state: FormatState { workspace.formatState }
-
     var body: some View {
         Menu {
-            Section("Schriftstil") {
-                ForEach([InlineStyle.emphasis, .sansSerif, .monospace, .smallCaps]) { style in
-                    Toggle(isOn: Binding(
-                        get: { state.inline.styles.contains(style) },
-                        set: { _ in workspace.toggle(style) }
-                    )) {
-                        Label(style.title, systemImage: style.symbol)
-                    }
-                }
-            }
-            Menu {
-                ForEach(FontSize.allCases) { size in
-                    Toggle(size.title, isOn: Binding(
-                        get: { (state.inline.fontSize ?? .normalsize) == size },
-                        set: { _ in workspace.setFontSize(size) }
-                    ))
-                }
-            } label: {
-                Label("Schriftgrösse", systemImage: "textformat.size")
-            }
-            Menu {
-                ColorMenuItems(workspace: workspace)
-            } label: {
-                Label("Textfarbe", systemImage: "paintpalette")
-            }
+            FontMenuItems(workspace: workspace)
         } label: {
             Label("Schrift", systemImage: "textformat")
         }
         .fixedSize()
         .help("Schriftstil, Schriftgrösse und Textfarbe")
+    }
+}
+
+/// Einträge für Schriftstil, Grösse und Farbe.
+struct FontMenuItems: View {
+    let workspace: DocumentWorkspace
+
+    private var state: FormatState { workspace.formatState }
+
+    var body: some View {
+        Section("Schriftstil") {
+            ForEach([InlineStyle.emphasis, .sansSerif, .monospace, .smallCaps]) { style in
+                Toggle(isOn: Binding(
+                    get: { state.inline.styles.contains(style) },
+                    set: { _ in workspace.toggle(style) }
+                )) {
+                    Label(style.title, systemImage: style.symbol)
+                }
+            }
+        }
+        Menu {
+            ForEach(FontSize.allCases) { size in
+                Toggle(size.title, isOn: Binding(
+                    get: { (state.inline.fontSize ?? .normalsize) == size },
+                    set: { _ in workspace.setFontSize(size) }
+                ))
+            }
+        } label: {
+            Label("Schriftgrösse", systemImage: "textformat.size")
+        }
+        Menu {
+            ColorMenuItems(workspace: workspace)
+        } label: {
+            Label("Textfarbe", systemImage: "paintpalette")
+        }
     }
 }
 

@@ -1,4 +1,4 @@
-# Baut Formelfreund auf einem Mac-Server von GitHub und führt die Tests aus.
+# Baut Lemma auf einem Mac-Server von GitHub und führt die Tests aus.
 #
 # Nach jedem erfolgreichen Build auf "main" wird die App als Release "latest"
 # veröffentlicht. Installieren auf dem Mac mit einer Zeile im Terminal:
@@ -40,8 +40,8 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild \
-            -project Formelfreund.xcodeproj \
-            -scheme Formelfreund \
+            -project Lemma.xcodeproj \
+            -scheme Lemma \
             -configuration Release \
             -destination 'platform=macOS,arch=arm64' \
             -derivedDataPath build \
@@ -50,14 +50,14 @@ jobs:
 
       - name: App verpacken
         run: |
-          ditto -c -k --keepParent build/Build/Products/Release/Formelfreund.app Formelfreund.zip
+          ditto -c -k --keepParent build/Build/Products/Release/Lemma.app Lemma.zip
           # Nur die Zeile REPO=… anpassen, die Prüfung auf den Platzhalter bleibt unverändert.
           sed "/^REPO=/s|__GITHUB_REPOSITORY__|${{ github.repository }}|" Scripts/install.sh > install.sh
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Formelfreund
-          path: Formelfreund.zip
+          name: Lemma
+          path: Lemma.zip
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -89,9 +89,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete latest --yes --cleanup-tag || true
-          gh release create latest Formelfreund.zip install.sh \
+          gh release create latest Lemma.zip install.sh \
             --target "$GITHUB_SHA" \
-            --title "Formelfreund (neueste Version)" \
+            --title "Lemma (neueste Version)" \
             --notes "Automatisch gebaut aus $(git rev-parse --short HEAD).
 
           Installieren: Terminal öffnen und eingeben:

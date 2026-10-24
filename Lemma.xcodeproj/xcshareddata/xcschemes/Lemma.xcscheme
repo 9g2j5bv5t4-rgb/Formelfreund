@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "FF0000000000000000000701"
-               BuildableName = "Formelfreund.app"
-               BlueprintName = "Formelfreund"
-               ReferencedContainer = "container:Formelfreund.xcodeproj">
+               BuildableName = "Lemma.app"
+               BlueprintName = "Lemma"
+               ReferencedContainer = "container:Lemma.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -43,9 +43,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "FF0000000000000000000701"
-            BuildableName = "Formelfreund.app"
-            BlueprintName = "Formelfreund"
-            ReferencedContainer = "container:Formelfreund.xcodeproj">
+            BuildableName = "Lemma.app"
+            BlueprintName = "Lemma"
+            ReferencedContainer = "container:Lemma.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -60,9 +60,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "FF0000000000000000000701"
-            BuildableName = "Formelfreund.app"
-            BlueprintName = "Formelfreund"
-            ReferencedContainer = "container:Formelfreund.xcodeproj">
+            BuildableName = "Lemma.app"
+            BlueprintName = "Lemma"
+            ReferencedContainer = "container:Lemma.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

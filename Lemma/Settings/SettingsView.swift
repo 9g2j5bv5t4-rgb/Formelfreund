@@ -7,16 +7,20 @@ struct SettingsView: View {
         TabView {
             Tab("Allgemein", systemImage: "gearshape") {
                 GeneralSettingsView()
+                    .frame(width: 540, height: 260)
             }
             Tab("Editor", systemImage: "character.cursor.ibeam") {
                 EditorSettingsView()
+                    .frame(width: 540, height: 400)
             }
             Tab("LaTeX", systemImage: "function") {
                 EngineSettingsView(engines: EngineManager.shared)
+                    .frame(width: 540, height: 460)
             }
         }
-        .frame(width: 520)
-        .scenePadding()
+        // Gruppierte Formulare haben unter macOS keine eigene Höhe. Ohne feste
+        // Grösse öffnet das Fenster zu klein und schneidet Inhalte ab. Passt
+        // etwas nicht ganz hinein, lässt sich das Formular scrollen.
     }
 }
 
@@ -91,7 +95,7 @@ private struct EngineSettingsView: View {
                 .pickerStyle(.radioGroup)
             } footer: {
                 if engines.preferredEngine == .latexmk && engines.latexmkURL == nil {
-                    Text("latexmk wurde nicht gefunden. Installiere MacTeX (tug.org/mactex) oder verwende Tectonic. Bis dahin kompiliert Formelfreund mit Tectonic.")
+                    Text("latexmk wurde nicht gefunden. Installiere MacTeX (tug.org/mactex) oder verwende Tectonic. Bis dahin kompiliert Lemma mit Tectonic.")
                         .foregroundStyle(.orange)
                 } else {
                     Text("Tectonic lädt fehlende LaTeX-Pakete automatisch nach. latexmk verwendet eine vorhandene MacTeX-Installation mit pdfLaTeX.")

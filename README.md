@@ -1,4 +1,4 @@
-# Formelfreund
+# Lemma
 
 Ein LaTeX-Editor für den Mac, gemacht für den Einstieg: Übungsblätter,
 Mitschriften und Zusammenfassungen mit viel Mathematik – ohne vorher eine
@@ -31,17 +31,17 @@ Nur nötig, wenn du am Code arbeitest:
 ```
 
 Das Skript testet die Logik, baut die App, installiert und startet sie.
-Alternativ `Formelfreund.xcodeproj` in Xcode öffnen und ⌘R drücken. Ein
+Alternativ `Lemma.xcodeproj` in Xcode öffnen und ⌘R drücken. Ein
 Apple-Entwicklerkonto ist nicht nötig, die App wird lokal „ad hoc“ signiert.
 
 ## Aufbau
 
 ```
-Formelfreund.xcodeproj      Xcode-Projekt (Ordner werden automatisch synchronisiert)
+Lemma.xcodeproj      Xcode-Projekt (Ordner werden automatisch synchronisiert)
 Config/Info.plist           Dateitypen (.tex)
 Scripts/                    install.sh (App installieren), build-and-run.sh (selbst bauen)
 .github/workflows/          Automatischer Build auf GitHub, veröffentlicht die App
-Formelfreund/               Die App (Oberfläche)
+Lemma/               Die App (Oberfläche)
   App/                      Einstieg, Menüs, Einstellungen-Schlüssel
   Document/                 Das .tex-Dokument (Laden/Sichern)
   Workspace/                Zustand eines Fensters: Kompilieren, Fehler, Sprünge
@@ -102,7 +102,7 @@ geschrieben – die Datei bleibt mit Overleaf und TeXShop kompatibel.
   in eine Umgebung einpacken, Formel-Nummerierung ein/aus.
 - **Inspektor:** Schriftart des Dokuments (Latin Modern, Times, Palatino,
   Charter, Libertinus, Helvetica), Grundgrösse, Papier, Ränder, Zeilenabstand.
-- Fehlende Pakete (z. B. `xcolor` für Farben) ergänzt Formelfreund automatisch.
+- Fehlende Pakete (z. B. `xcolor` für Farben) ergänzt Lemma automatisch.
 
 ## Lizenzen
 

@@ -11,14 +11,14 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		FF0000000000000000000301 /* Formelfreund.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Formelfreund.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FF0000000000000000000301 /* Lemma.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Lemma.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FF0000000000000000000302 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		FF0000000000000000000401 /* Formelfreund */ = {
+		FF0000000000000000000401 /* Lemma */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Formelfreund;
+			path = Lemma;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -38,7 +38,7 @@
 		FF0000000000000000000601 = {
 			isa = PBXGroup;
 			children = (
-				FF0000000000000000000401 /* Formelfreund */,
+				FF0000000000000000000401 /* Lemma */,
 				FF0000000000000000000603 /* Config */,
 				FF0000000000000000000602 /* Products */,
 			);
@@ -47,7 +47,7 @@
 		FF0000000000000000000602 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				FF0000000000000000000301 /* Formelfreund.app */,
+				FF0000000000000000000301 /* Lemma.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -63,9 +63,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		FF0000000000000000000701 /* Formelfreund */ = {
+		FF0000000000000000000701 /* Lemma */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = FF0000000000000000000A02 /* Build configuration list for PBXNativeTarget "Formelfreund" */;
+			buildConfigurationList = FF0000000000000000000A02 /* Build configuration list for PBXNativeTarget "Lemma" */;
 			buildPhases = (
 				FF0000000000000000000801 /* Sources */,
 				FF0000000000000000000501 /* Frameworks */,
@@ -76,14 +76,14 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				FF0000000000000000000401 /* Formelfreund */,
+				FF0000000000000000000401 /* Lemma */,
 			);
-			name = Formelfreund;
+			name = Lemma;
 			packageProductDependencies = (
 				FF0000000000000000000201 /* LaTeXKit */,
 			);
-			productName = Formelfreund;
-			productReference = FF0000000000000000000301 /* Formelfreund.app */;
+			productName = Lemma;
+			productReference = FF0000000000000000000301 /* Lemma.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -101,7 +101,7 @@
 					};
 				};
 			};
-			buildConfigurationList = FF0000000000000000000A01 /* Build configuration list for PBXProject "Formelfreund" */;
+			buildConfigurationList = FF0000000000000000000A01 /* Build configuration list for PBXProject "Lemma" */;
 			developmentRegion = de;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -118,7 +118,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				FF0000000000000000000701 /* Formelfreund */,
+				FF0000000000000000000701 /* Lemma */,
 			);
 		};
 /* End PBXProject section */
@@ -211,7 +211,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Config/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Formelfreund;
+				INFOPLIST_KEY_CFBundleDisplayName = Lemma;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -239,7 +239,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Config/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Formelfreund;
+				INFOPLIST_KEY_CFBundleDisplayName = Lemma;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -257,7 +257,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		FF0000000000000000000A01 /* Build configuration list for PBXProject "Formelfreund" */ = {
+		FF0000000000000000000A01 /* Build configuration list for PBXProject "Lemma" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				FF0000000000000000000C01 /* Debug */,
@@ -266,7 +266,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		FF0000000000000000000A02 /* Build configuration list for PBXNativeTarget "Formelfreund" */ = {
+		FF0000000000000000000A02 /* Build configuration list for PBXNativeTarget "Lemma" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				FF0000000000000000000C03 /* Debug */,

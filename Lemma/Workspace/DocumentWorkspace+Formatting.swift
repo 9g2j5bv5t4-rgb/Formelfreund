@@ -100,7 +100,7 @@ extension DocumentWorkspace {
         guard let documentDirectory = fileURL?.deletingLastPathComponent() else {
             let alert = NSAlert()
             alert.messageText = "Bitte sichere das Dokument zuerst"
-            alert.informativeText = "Formelfreund legt Bilder im Ordner „Bilder“ neben deinem Dokument ab. Dafür muss das Dokument einen Speicherort haben (Ablage → Sichern)."
+            alert.informativeText = "Lemma legt Bilder im Ordner „Bilder“ neben deinem Dokument ab. Dafür muss das Dokument einen Speicherort haben (Ablage → Sichern)."
             alert.runModal()
             return
         }

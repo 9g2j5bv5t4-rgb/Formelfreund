@@ -40,7 +40,7 @@ public enum DocumentFont: String, CaseIterable, Sendable, Identifiable {
     /// Präambel-Zeilen für diese Schrift (leer für die Standardschrift).
     ///
     /// Ein leeres Dokument ohne Schrift-Zeilen gilt als Latin Modern. Wählt man
-    /// Latin Modern ausdrücklich (z. B. zurück von Times), schreibt Formelfreund
+    /// Latin Modern ausdrücklich (z. B. zurück von Times), schreibt Lemma
     /// trotzdem drei Zeilen: Unter pdfLaTeX braucht es die Kodierung T1, sonst
     /// werden Wörter mit Umlauten nicht getrennt und lassen sich aus dem PDF
     /// nicht richtig kopieren.
@@ -207,7 +207,7 @@ public struct DocumentSettings: Equatable, Sendable {
 
 /// Liest und ändert die Präambel (alles vor `\begin{document}`).
 ///
-/// Änderungen sind minimal und nachvollziehbar: Formelfreund ergänzt bzw.
+/// Änderungen sind minimal und nachvollziehbar: Lemma ergänzt bzw.
 /// ersetzt einzelne Zeilen und markiert verwaltete Zeilen mit einem kurzen
 /// Kommentar (z. B. `% Schrift: Times`). Von Hand geschriebene Präambeln
 /// bleiben ansonsten unangetastet und mit Overleaf/TeXShop kompatibel.
@@ -476,7 +476,7 @@ private enum FontCatalog {
 
 // MARK: - Zerlegte Präambel
 
-/// Die Präambel als Folge von UTF-16-Einheiten, mit allem, was Formelfreund darin erkennt.
+/// Die Präambel als Folge von UTF-16-Einheiten, mit allem, was Lemma darin erkennt.
 private struct ParsedPreamble {
     /// Der Text vom Anfang bis `\begin{document}` (ohne dieses).
     let units: [UInt16]
@@ -492,7 +492,7 @@ private struct ParsedPreamble {
     private(set) var documentClass: PreambleClass?
     private(set) var loads: [PreambleLoad] = []
     private(set) var hits: [PreambleHit] = []
-    /// Zeilen der von Formelfreund geschriebenen Schrift-Blöcke (ganze Zeilen inklusive Zeilenumbruch).
+    /// Zeilen der von Lemma geschriebenen Schrift-Blöcke (ganze Zeilen inklusive Zeilenumbruch).
     private(set) var fontBlockLines: [Range<Int>] = []
     /// Anfang jedes Schrift-Blocks (die Zeile mit „% Schrift: …“).
     private(set) var fontBlockStarts: [Int] = []

@@ -88,7 +88,7 @@ final class DocumentWorkspace {
         self.fileURL = fileURL
         self.engines = engines
         buildDirectory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("Formelfreund", isDirectory: true)
+            .appendingPathComponent("Lemma", isDirectory: true)
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
     }
 

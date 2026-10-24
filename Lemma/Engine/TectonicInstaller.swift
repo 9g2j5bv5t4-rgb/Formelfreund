@@ -3,7 +3,7 @@ import Foundation
 import LaTeXKit
 
 /// Lädt Tectonic beim ersten Kompilieren herunter und installiert es in
-/// `~/Library/Application Support/Formelfreund/Tectonic/<Version>/`.
+/// `~/Library/Application Support/Lemma/Tectonic/<Version>/`.
 ///
 /// Sicherheit: Die Version ist fest eingetragen und die Datei wird vor dem
 /// Entpacken über ihre SHA-256-Prüfsumme geprüft. Eine manipulierte oder
@@ -51,28 +51,54 @@ enum TectonicInstaller {
         }
     }
 
+    private static var supportDirectory: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+    }
+
     static var installDirectory: URL {
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return support
-            .appendingPathComponent("Formelfreund", isDirectory: true)
+        supportDirectory
+            .appendingPathComponent("Lemma", isDirectory: true)
             .appendingPathComponent("Tectonic", isDirectory: true)
             .appendingPathComponent(version, isDirectory: true)
+    }
+
+    /// Die App hiess früher „Formelfreund“. Ein damals geladenes Tectonic wird in
+    /// den neuen Ordner verschoben, statt es noch einmal herunterzuladen.
+    private static func migrateFromFormerName() {
+        let fm = FileManager.default
+        let oldFolder = supportDirectory.appendingPathComponent("Formelfreund", isDirectory: true)
+        let oldTectonic = oldFolder.appendingPathComponent("Tectonic", isDirectory: true)
+        let newTectonic = supportDirectory
+            .appendingPathComponent("Lemma", isDirectory: true)
+            .appendingPathComponent("Tectonic", isDirectory: true)
+        guard fm.fileExists(atPath: oldTectonic.path), !fm.fileExists(atPath: newTectonic.path) else { return }
+        do {
+            try fm.createDirectory(at: newTectonic.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try fm.moveItem(at: oldTectonic, to: newTectonic)
+            // Den alten Ordner nur entfernen, wenn er jetzt leer ist.
+            if (try? fm.contentsOfDirectory(atPath: oldFolder.path).isEmpty) == true {
+                try? fm.removeItem(at: oldFolder)
+            }
+        } catch {
+            // Nicht schlimm: Dann wird Tectonic beim nächsten Kompilieren neu geladen.
+        }
     }
 
     static var executableURL: URL {
         installDirectory.appendingPathComponent("tectonic")
     }
 
-    /// Bereits von Formelfreund installiertes Tectonic, falls vorhanden.
+    /// Bereits von Lemma installiertes Tectonic, falls vorhanden.
     static func installedExecutable() -> URL? {
-        FileManager.default.isExecutableFile(atPath: executableURL.path) ? executableURL : nil
+        migrateFromFormerName()
+        return FileManager.default.isExecutableFile(atPath: executableURL.path) ? executableURL : nil
     }
 
     /// Lädt, prüft, entpackt und testet Tectonic.
     /// - Parameter progress: Download-Fortschritt von 0 bis 1.
     static func install(progress: @escaping @Sendable (Double) -> Void) async throws -> URL {
         let fm = FileManager.default
-        let workDirectory = fm.temporaryDirectory.appendingPathComponent("Formelfreund-Tectonic-\(UUID().uuidString)", isDirectory: true)
+        let workDirectory = fm.temporaryDirectory.appendingPathComponent("Lemma-Tectonic-\(UUID().uuidString)", isDirectory: true)
         try fm.createDirectory(at: workDirectory, withIntermediateDirectories: true)
         defer { try? fm.removeItem(at: workDirectory) }
 
