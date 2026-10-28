@@ -1,0 +1,15 @@
+# Vorübergehend: Prüft, welche GitHub-Server zurzeit verfügbar sind.
+name: Runner-Check
+on:
+  push:
+    branches: [wip/runner-check]
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-15, macos-26, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+    steps:
+      - run: uname -a; sw_vers 2>/dev/null || true; ls -d /Applications/Xcode_26* 2>/dev/null || true
