@@ -113,15 +113,87 @@ public enum DocumentFont: String, CaseIterable, Sendable, Identifiable {
     }
 }
 
+/// Eine Zahl, wie LaTeX sie erwartet: Punkt als Dezimalzeichen, höchstens zwei
+/// Nachkommastellen, ohne überflüssige Nullen (`2.5`, `1.25`, `3`).
+public func latexNumber(_ value: Double) -> String {
+    var text = String(format: "%.2f", value)
+    while text.hasSuffix("0") { text.removeLast() }
+    if text.hasSuffix(".") { text.removeLast() }
+    return text
+}
+
+/// Vier Seitenränder in Zentimetern.
+public struct MarginSizes: Hashable, Sendable {
+    public var top: Double
+    public var bottom: Double
+    public var left: Double
+    public var right: Double
+
+    public init(top: Double, bottom: Double, left: Double, right: Double) {
+        self.top = top
+        self.bottom = bottom
+        self.left = left
+        self.right = right
+    }
+
+    /// Alle vier Ränder gleich.
+    public init(uniform value: Double) {
+        self.init(top: value, bottom: value, left: value, right: value)
+    }
+
+    /// Sinnvoller Bereich für Regler und Eingabefelder (cm).
+    public static let range: ClosedRange<Double> = 0.5...6
+
+    public var isUniform: Bool {
+        max(top, bottom, left, right) - min(top, bottom, left, right) < 0.005
+    }
+
+    /// Optionen für geometry, z. B. `margin=2.2cm` oder `top=2cm,bottom=2cm,left=3cm,right=2cm`.
+    public var geometryOptions: String {
+        if isUniform { return "margin=\(latexNumber(left))cm" }
+        return "top=\(latexNumber(top))cm,bottom=\(latexNumber(bottom))cm,left=\(latexNumber(left))cm,right=\(latexNumber(right))cm"
+    }
+
+    /// Kurzbeschreibung, z. B. „2,2 cm“ oder „2 / 2 / 3 / 2 cm“.
+    public var summary: String {
+        func german(_ value: Double) -> String { latexNumber(value).replacingOccurrences(of: ".", with: ",") }
+        if isUniform { return "\(german(left)) cm" }
+        return "oben \(german(top)), unten \(german(bottom)), links \(german(left)), rechts \(german(right)) cm"
+    }
+}
+
 /// Seitenränder über das Paket `geometry`.
-public enum PageMargins: String, CaseIterable, Sendable, Identifiable {
+public enum PageMargins: Hashable, Sendable, Identifiable {
     /// Ränder der Dokumentklasse (kein geometry).
     case standard
     case narrow
     case normal
     case wide
+    /// Eigene Werte (Regler bzw. Eingabefelder).
+    case custom(MarginSizes)
 
-    public var id: String { rawValue }
+    /// Voreinstellungen für Menüs; eigene Werte gibt es über Regler und Eingabefelder.
+    public static let presets: [PageMargins] = [.standard, .narrow, .normal, .wide]
+    public static var allCases: [PageMargins] { presets }
+
+    /// Gleichmässige Ränder; passende Werte werden zur Voreinstellung.
+    public init(sizes: MarginSizes) {
+        if sizes.isUniform, let preset = Self.presets.first(where: { $0.sizes.map { abs($0.left - sizes.left) < 0.005 } ?? false }) {
+            self = preset
+        } else {
+            self = .custom(sizes)
+        }
+    }
+
+    public var id: String {
+        switch self {
+        case .standard: return "standard"
+        case .narrow: return "narrow"
+        case .normal: return "normal"
+        case .wide: return "wide"
+        case .custom(let sizes): return "custom-" + sizes.geometryOptions
+        }
+    }
 
     public var title: String {
         switch self {
@@ -129,33 +201,72 @@ public enum PageMargins: String, CaseIterable, Sendable, Identifiable {
         case .narrow: return "Schmal (2 cm)"
         case .normal: return "Normal (2,5 cm)"
         case .wide: return "Breit (3,5 cm)"
+        case .custom(let sizes): return "Eigene (\(sizes.summary))"
+        }
+    }
+
+    /// Ränder in Zentimetern; `nil` für den Standard der Dokumentklasse.
+    public var sizes: MarginSizes? {
+        switch self {
+        case .standard: return nil
+        case .narrow: return MarginSizes(uniform: 2)
+        case .normal: return MarginSizes(uniform: 2.5)
+        case .wide: return MarginSizes(uniform: 3.5)
+        case .custom(let sizes): return sizes
         }
     }
 
     /// Optionen für `\usepackage[…]{geometry}`, `nil` für `.standard`.
     public var geometryOptions: String? {
-        switch self {
-        case .standard: return nil
-        case .narrow: return "margin=2cm"
-        case .normal: return "margin=2.5cm"
-        case .wide: return "margin=3.5cm"
-        }
+        sizes?.geometryOptions
     }
 }
 
 /// Zeilenabstand über das Paket `setspace`.
-public enum LineSpacing: String, CaseIterable, Sendable, Identifiable {
+public enum LineSpacing: Hashable, Sendable, Identifiable {
     case single
     case onehalf
     case double
+    /// Eigener Faktor über `\setstretch{…}` (1 = einfach).
+    case custom(Double)
 
-    public var id: String { rawValue }
+    /// Voreinstellungen für Menüs; eigene Werte gibt es über Regler und Eingabefelder.
+    public static let presets: [LineSpacing] = [.single, .onehalf, .double]
+    public static var allCases: [LineSpacing] { presets }
+
+    /// Sinnvoller Bereich für Regler und Eingabefelder.
+    public static let stretchRange: ClosedRange<Double> = 0.8...3
+
+    /// Abstand zu einem Faktor aus `\linespread` bzw. `\setstretch`.
+    public init(stretch: Double) {
+        self = abs(stretch - 1) < 0.005 ? .single : .custom(stretch)
+    }
+
+    public var id: String {
+        switch self {
+        case .single: return "single"
+        case .onehalf: return "onehalf"
+        case .double: return "double"
+        case .custom(let value): return "custom-\(latexNumber(value))"
+        }
+    }
 
     public var title: String {
         switch self {
         case .single: return "Einfach"
         case .onehalf: return "1,5-fach"
         case .double: return "Doppelt"
+        case .custom(let value): return "Eigener Faktor \(latexNumber(value).replacingOccurrences(of: ".", with: ","))"
+        }
+    }
+
+    /// Ungefährer Faktor für Regler (setspace rechnet „1,5-fach“ je nach Schriftgrösse leicht anders).
+    public var approximateStretch: Double {
+        switch self {
+        case .single: return 1
+        case .onehalf: return 1.25
+        case .double: return 1.67
+        case .custom(let value): return value
         }
     }
 }
@@ -252,7 +363,12 @@ public enum PreambleEditor {
     /// `preservingSelection`, um die Auswahl des Nutzers zu behalten).
     public static func apply<S: UTF16Source>(_ settings: DocumentSettings, in text: S) -> TextEdit? {
         guard let end = preambleEnd(in: text) else { return nil }
-        let preamble = ParsedPreamble(units: prefix(of: text, upTo: end))
+        var preamble = ParsedPreamble(units: prefix(of: text, upTo: end))
+        // Ränder bzw. Zeilenabstand nur einzelner Seiten (siehe LocalLayout) brauchen
+        // geometry bzw. setspace weiter – auch wenn das ganze Dokument zum Standard zurückkehrt.
+        let body = text.string(in: end..<text.count)
+        preamble.bodyUsesGeometry = body.contains("\\newgeometry")
+        preamble.bodyUsesSetspace = LocalLayout.spacingEnvironments.contains { body.contains("\\begin{\($0)}") }
         return preamble.edit(applying: settings)
     }
 
@@ -424,13 +540,6 @@ private enum FontCatalog {
         font.preambleLines.map { $0.trimmingCharacters(in: .whitespaces) }
     })
 
-    /// Zeilenabstand zu einem Faktor aus `\linespread` bzw. `\setstretch`.
-    static func spacing(forStretch value: Double) -> LineSpacing {
-        if value < 1.15 { return .single }
-        if value < 1.55 { return .onehalf }
-        return .double
-    }
-
     /// Länge in Zentimetern (`2cm`, `20mm`, `1in`, `56.9pt` …).
     static func centimeters(_ value: String) -> Double? {
         let text = value.trimmingCharacters(in: .whitespaces)
@@ -496,6 +605,9 @@ private struct ParsedPreamble {
     private(set) var fontBlockLines: [Range<Int>] = []
     /// Anfang jedes Schrift-Blocks (die Zeile mit „% Schrift: …“).
     private(set) var fontBlockStarts: [Int] = []
+    /// Nutzt der Textteil `\newgeometry` bzw. Abstands-Umgebungen von setspace?
+    var bodyUsesGeometry = false
+    var bodyUsesSetspace = false
 
     var end: Int { units.count }
 
@@ -940,10 +1052,10 @@ private struct ParsedPreamble {
                 }
             }
         }
-        guard !custom, let left, let right, let top, let bottom,
-              max(left, right, top, bottom) - min(left, right, top, bottom) < 0.01 else { return .standard }
-        let candidates: [(Double, PageMargins)] = [(2, .narrow), (2.5, .normal), (3.5, .wide)]
-        return candidates.first { abs($0.0 - left) < 0.01 }?.1 ?? .standard
+        // „pass“ schaltet alle Angaben ab (Lemma nutzt das für Ränder nur einzelner Seiten).
+        let passes = geometrySources.contains { $0.options.contains("pass") }
+        guard !custom, !passes, let left, let right, let top, let bottom else { return .standard }
+        return PageMargins(sizes: MarginSizes(top: top, bottom: bottom, left: left, right: right))
     }
 
     /// Alle Angaben zum Zeilenabstand, in der Reihenfolge im Text.
@@ -957,7 +1069,7 @@ private struct ParsedPreamble {
         for hit in hits {
             switch hit.command {
             case .spacingSwitch(let spacing): sources.append((spacing, hit.range.lowerBound))
-            case .stretch(let value): sources.append((FontCatalog.spacing(forStretch: value), hit.range.lowerBound))
+            case .stretch(let value): sources.append((LineSpacing(stretch: value), hit.range.lowerBound))
             default: break
             }
         }
@@ -1138,7 +1250,8 @@ extension ParsedPreamble {
         let marginsChange = target.margins != current.margins
         let paperChange = documentClass != nil && target.paperSize != current.paperSize
         guard marginsChange || paperChange else { return [] }
-        let isMarginOption: (String) -> Bool = { FontCatalog.marginKeys.contains(FontCatalog.optionKey($0)) }
+        // „pass“ (von Rändern nur einzelner Seiten) würde neue Ränder für das ganze Dokument abschalten.
+        let isMarginOption: (String) -> Bool = { FontCatalog.marginKeys.contains(FontCatalog.optionKey($0)) || $0 == "pass" }
         var changes: [PreambleChange] = []
         var marginWritten = false
         for load in loads where load.names.contains("geometry") {
@@ -1149,6 +1262,10 @@ extension ParsedPreamble {
             if marginsChange, let margin = target.margins.geometryOptions, !marginWritten, canHoldOptions {
                 options.insert(margin, at: 0)
                 marginWritten = true
+            }
+            if marginsChange && target.margins == .standard && bodyUsesGeometry && !options.contains("pass") {
+                // Der Textteil braucht \newgeometry: geometry bleibt, ändert aber nichts.
+                options = options.filter { !isMarginOption($0) } + ["pass"]
             }
             guard options != load.options else { continue }
             if options.isEmpty && marginsChange && load.names == ["geometry"] {
@@ -1210,17 +1327,33 @@ extension ParsedPreamble {
             setspaceLoads.compactMap { load in
                 guard load.range != kept?.range else { return nil }
                 let options = load.options.filter { Self.spacing(forSetspaceOption: $0) == nil }
-                guard options != load.options else { return nil }
-                if removeManaged && options.isEmpty && load.names == ["setspace"]
+                if removeManaged && !bodyUsesSetspace && options.isEmpty && load.names == ["setspace"]
                     && lineHasMarker(at: load.range.lowerBound, FontCatalog.spacingMarker) {
                     return removal(of: load.range)
                 }
+                guard options != load.options else { return nil }
                 return optionsChange(bracket: load.bracketRange, before: load.namesRange, options: options)
             }
         }
         if target == .single {
             changes += switches.map { removal(of: $0.range) }
             changes += clearingOptions(removeManaged: true)
+            return changes
+        }
+        if case .custom(let value) = target {
+            // Eigener Faktor: \setstretch{…} direkt nach setspace.
+            changes += switches.map { removal(of: $0.range) }
+            changes += clearingOptions(removeManaged: false)
+            let line = "\\setstretch{\(latexNumber(value))} % \(FontCatalog.spacingMarker)"
+            if let load = setspaceLoads.first, let position = lineStart(after: load.outer) {
+                changes.append(insertion([line], at: position, order: InsertOrder.spacing))
+            } else {
+                changes.append(insertion(
+                    ["\\usepackage{setspace} % \(FontCatalog.spacingMarker)", line],
+                    at: packageInsertionPoint,
+                    order: InsertOrder.spacing
+                ))
+            }
             return changes
         }
         let command = target == .onehalf ? "\\onehalfspacing" : "\\doublespacing"

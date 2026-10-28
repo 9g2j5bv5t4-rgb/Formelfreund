@@ -238,8 +238,10 @@ struct PreambleReadingTests {
         ("\\usepackage[hmargin=2cm,vmargin=2cm]{geometry}", .narrow),
         ("\\usepackage{geometry}\n\\geometry{margin=2cm}", .narrow),
         ("\\usepackage[margin=2cm]{geometry}\n\\geometry{margin=3.5cm}", .wide),
-        ("\\usepackage[margin=3cm]{geometry}", .standard),
-        ("\\usepackage[left=2cm,right=3cm,top=2cm,bottom=2cm]{geometry}", .standard),
+        ("\\usepackage[margin=3cm]{geometry}", .custom(MarginSizes(uniform: 3))),
+        ("\\usepackage[left=2cm,right=3cm,top=2cm,bottom=2cm]{geometry}", .custom(MarginSizes(top: 2, bottom: 2, left: 2, right: 3))),
+        ("\\usepackage[pass]{geometry}", .standard),
+        ("\\usepackage[margin=2cm,pass]{geometry}", .standard),
         ("\\usepackage[margin=2cm,textwidth=15cm]{geometry}", .standard),
         ("\\usepackage{geometry}", .standard),
         ("% \\usepackage[margin=2cm]{geometry}", .standard),
@@ -255,10 +257,10 @@ struct PreambleReadingTests {
         ("\\usepackage[onehalfspacing]{setspace}", .onehalf),
         ("\\usepackage[doublespacing]{setspace}", .double),
         ("\\usepackage{setspace}\n\\doublespacing\n\\singlespacing", .single),
-        ("\\linespread{1.3}", .onehalf),
-        ("\\linespread{1.6}", .double),
+        ("\\linespread{1.3}", .custom(1.3)),
+        ("\\linespread{1.6}", .custom(1.6)),
         ("\\linespread{1}", .single),
-        ("\\usepackage{setspace}\n\\setstretch{1.5}", .onehalf),
+        ("\\usepackage{setspace}\n\\setstretch{1.5}", .custom(1.5)),
         ("\\usepackage{setspace}\n% \\onehalfspacing", .single)
     ])
     func recognisesLineSpacing(lines: String, expected: LineSpacing) {
@@ -508,7 +510,7 @@ struct PreambleApplyTests {
         // \linespread wird durch setspace ersetzt.
         let spread = "\\documentclass{article}\n\\usepackage{amsmath}\n\\linespread{1.3}\n\\begin{document}\n\\end{document}"
         var spreadTarget = settings(spread)
-        #expect(spreadTarget.lineSpacing == .onehalf)
+        #expect(spreadTarget.lineSpacing == .custom(1.3))
         spreadTarget.lineSpacing = .double
         #expect(applied(spreadTarget, to: spread) == "\\documentclass{article}\n\\usepackage{amsmath}\n\\usepackage[doublespacing]{setspace} % Zeilenabstand\n\\begin{document}\n\\end{document}")
 

@@ -162,6 +162,15 @@ public struct SyncTeXIndex: Sendable {
             .min()
     }
 
+    /// Erste und letzte Zeile einer Datei, die auf einer PDF-Seite (1-basiert) vorkommen –
+    /// z. B. für „Ränder nur für diese Seite“.
+    public func lineRange(onPage page: Int, fileName: String) -> ClosedRange<Int>? {
+        guard let tag = tag(forFileNamed: fileName) else { return nil }
+        let lines = records.filter { $0.tag == tag && $0.page == page && $0.line > 0 }.map(\.line)
+        guard let first = lines.min(), let last = lines.max() else { return nil }
+        return first...last
+    }
+
     // MARK: - Vorwärtssuche: Zeile → PDF
 
     public func forwardSearch(line: Int, fileName: String) -> SyncTeXPosition? {
