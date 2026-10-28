@@ -9,6 +9,10 @@ struct PreviewPane: View {
         ZStack(alignment: .top) {
             if workspace.pdfDocument != nil {
                 PDFPreviewView(workspace: workspace)
+                    .overlay(alignment: .bottom) {
+                        PreviewControls(workspace: workspace)
+                            .padding(.bottom, 12)
+                    }
                 if workspace.isPDFOutdated {
                     OutdatedBadge(errorCount: workspace.errors.count) {
                         workspace.revealFirstError()
@@ -64,6 +68,52 @@ struct PreviewPane: View {
                     .buttonStyle(.borderedProminent)
             }
         }
+    }
+}
+
+/// Schwebende Bedienleiste unter der Vorschau: Zoom und Seitenzahl, wie in der App „Vorschau“.
+private struct PreviewControls: View {
+    let workspace: DocumentWorkspace
+    @State private var isHovered = false
+
+    var body: some View {
+        HStack(spacing: 2) {
+            controlButton("Verkleinern", systemImage: "minus.magnifyingglass") { workspace.zoomPDF(by: 1 / 1.2) }
+            Text("\(workspace.pdfScalePercent) %")
+                .font(.system(size: 11).monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(width: 46)
+            controlButton("Vergrössern", systemImage: "plus.magnifyingglass") { workspace.zoomPDF(by: 1.2) }
+            Divider().frame(height: 14).padding(.horizontal, 4)
+            controlButton("Seitenbreite", systemImage: "arrow.left.and.right.square", isOn: workspace.pdfAutoScales) {
+                workspace.fitPDFWidth()
+            }
+            if let pages = workspace.pdfDocument?.pageCount, workspace.pdfPageNumber > 0 {
+                Divider().frame(height: 14).padding(.horizontal, 4)
+                Text("Seite \(workspace.pdfPageNumber) von \(pages)")
+                    .font(.system(size: 11).monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 6)
+            }
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .background(.regularMaterial, in: Capsule())
+        .overlay(Capsule().strokeBorder(Color.primary.opacity(0.08)))
+        .shadow(color: .black.opacity(0.12), radius: 8, y: 2)
+        .opacity(isHovered ? 1 : 0.88)
+        .onHover { isHovered = $0 }
+    }
+
+    private func controlButton(_ title: String, systemImage: String, isOn: Bool = false, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 12))
+                .frame(width: 24, height: 20)
+        }
+        .buttonStyle(RibbonButtonStyle(isOn: isOn))
+        .help(title)
+        .accessibilityLabel(title)
     }
 }
 

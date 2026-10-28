@@ -299,6 +299,15 @@ final class EditorCoordinator: NSObject, NSTextViewDelegate, NSTextStorageDelega
         undoManager?.endUndoGrouping()
     }
 
+    var window: NSWindow? { textView.window }
+
+    func showFindBar() {
+        focus()
+        let item = NSMenuItem()
+        item.tag = NSTextFinder.Action.showFindInterface.rawValue
+        textView.performTextFinderAction(item)
+    }
+
     func select(_ range: Range<Int>) {
         let nsRange = NSRange(location: range.lowerBound, length: range.count)
         textView.setSelectedRange(nsRange)

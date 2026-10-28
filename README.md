@@ -100,24 +100,29 @@ lässt sich schnell und automatisch testen (`swift test`) und bleibt
 ## Multifunktionsleiste und Bausteine
 
 Über Editor und Vorschau sitzt eine Multifunktionsleiste wie in Word – mit
-Registerkarten, grossen Symbolen und Gruppen. Alles wird als normales LaTeX
-geschrieben, die Datei bleibt mit Overleaf und TeXShop kompatibel.
+Registerkarten, grossen Symbolen und Gruppen als Karten. Alles wird als
+normales LaTeX geschrieben, die Datei bleibt mit Overleaf und TeXShop kompatibel.
 
-- **Start:** Formatvorlagen (Text, Überschrift 1–4) als Vorschau-Kacheln,
-  Fett/Kursiv/Unterstrichen, Schriftstil, Grösse, Farbe, Ausrichtung, Listen,
-  Einrücken.
-- **Einfügen:** Formeln, Bilder, Tabellen, Listen, Überschriften,
-  Definition/Satz/Beweis, Aufgabe/Lösung, Fussnote, Link, Verweise,
-  Seitenumbruch. Platzhalter `•` springst du mit Tab an.
-- **Formeln:** Bruch, Wurzel, Potenz, Index, Summe, Integral, Grenzwert,
-  Ableitung, Matrizen, Fallunterscheidung – und Symbol-Kacheln (griechische
-  Buchstaben, Vergleiche, Pfeile, Mengen, Zahlbereiche).
-- **Layout:** Schriftart des Dokuments (Latin Modern, Times, Palatino,
-  Charter, Libertinus, Helvetica), Grundgrösse, Papier, Ränder, Zeilenabstand.
+- **Start:** Fett/Kursiv/Unterstrichen, Schriftstil, Grösse, Farbe,
+  Ausrichtung, Listen, Einrücken, Formeln, Suchen, Block auswählen, Kommentar.
+- **Einfügen:** Formeln, Bilder, Tabellen und Listen in frei wählbarer Grösse
+  (Raster aufziehen wie in Word), Überschriften, Definition/Satz/Beweis,
+  Aufgabe/Lösung, Fussnote, Link, Verweise, Seitenumbruch.
+- **Formeln:** Bruch, Wurzel, Potenz, Index, Vektor, Summe, Integral,
+  Grenzwert, Ableitung, Rechnungen, Gleichungssysteme, Fallunterscheidungen und
+  Matrizen in beliebiger Grösse, Symbol-Kacheln (griechische Buchstaben,
+  Vergleiche, Pfeile, Mengen, Zahlbereiche).
+- **Layout:** Ränder und Zeilenabstand mit Schnellwahl, Regler und Eingabefeld –
+  für das ganze Dokument oder nur „diese Seite“ (`\newgeometry` bzw. eine
+  Abstands-Umgebung um die Absätze dieser Seite). Schriftart, Grundgrösse, Papier.
 - **Blöcke:** Umgebung auswählen, umwandeln, einpacken, auflösen,
   Formel-Nummerierung, Zeilen verschieben, auskommentieren.
-- Wird das Fenster schmal, zeigt die Leiste nur noch Symbole. Mit dem Pfeil
-  rechts lässt sie sich auf die Registerkarten einklappen.
+- **Passende Stelle:** Bausteine landen dort, wo sie Sinn ergeben – nie in der
+  Präambel oder nach `\end{document}`, abgesetzte Formeln hinter der Formel am
+  Cursor, Tabellen nicht in Tabellen, Überschriften nicht in Listen.
+- **Fehlerhilfe:** Fehler werden auf Deutsch erklärt, mit Lösungsvorschlag und –
+  wo möglich – einem Knopf „Beheben“ (Paket laden, Tippfehler, falsches `\end`).
+- **Speichern** (⌘S) und PDF-Export bestätigen sich mit einer kurzen Meldung.
 - Fehlende Pakete (z. B. `xcolor` für Farben) ergänzt Lemma automatisch.
 
 ## Lizenzen

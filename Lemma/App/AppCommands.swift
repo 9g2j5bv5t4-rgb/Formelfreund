@@ -1,3 +1,4 @@
+import AppKit
 import LaTeXKit
 import SwiftUI
 
@@ -14,6 +15,27 @@ struct AppCommands: Commands {
     @AppStorage(AppSettings.Keys.showFormatBar) private var showFormatBar = AppSettings.Defaults.showFormatBar
 
     var body: some Commands {
+        // „Speichern“ statt „Sichern“ – mit Bestätigung im Fenster.
+        CommandGroup(replacing: .saveItem) {
+            Button("Speichern") { workspace?.saveDocument() }
+                .keyboardShortcut("s", modifiers: .command)
+                .disabled(workspace == nil)
+            Button("Speichern unter …") { workspace?.saveDocument(asNewFile: true) }
+                .keyboardShortcut("s", modifiers: [.command, .shift])
+                .disabled(workspace == nil)
+            Button("Duplizieren") { send("duplicateDocument:") }
+                .disabled(workspace == nil)
+            Button("Umbenennen …") { send("renameDocument:") }
+                .disabled(workspace == nil)
+            Button("Bewegen nach …") { send("moveDocument:") }
+                .disabled(workspace == nil)
+            Divider()
+            Button("Zurück zur zuletzt gespeicherten Version") { send("revertDocumentToSaved:") }
+                .disabled(workspace == nil)
+            Button("Alle Versionen durchsuchen …") { send("browseDocumentVersions:") }
+                .disabled(workspace == nil)
+        }
+
         CommandMenu("Dokument") {
             Button("Kompilieren") {
                 workspace?.compile()
@@ -88,5 +110,10 @@ struct AppCommands: Commands {
 
             Divider()
         }
+    }
+
+    /// Schickt eine Aktion von NSDocument an das vorderste Dokument.
+    private func send(_ action: String) {
+        NSApp.sendAction(NSSelectorFromString(action), to: nil, from: nil)
     }
 }

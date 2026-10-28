@@ -13,13 +13,21 @@ extension DocumentWorkspace {
 
     /// Führt eine Bearbeitung aus und ergänzt danach fehlende Pakete.
     /// - Returns: `false`, wenn nichts zu tun war (z. B. Cursor in keiner Formel).
+    /// - Parameter bodyOnly: Nur im Textteil erlaubt (Formatierungen gehören nicht in die Präambel).
     @discardableResult
     func performEdit(
         _ actionName: String,
         requirements: [PackageRequirement] = [],
+        bodyOnly: Bool = false,
         _ makeEdit: (NSStringSource, Range<Int>) -> TextEdit?
     ) -> Bool {
         guard let editor else { return false }
+        if bodyOnly, let body = InsertionPlanner.bodyRange(in: editor.source),
+           editor.selection.lowerBound < body.lowerBound || editor.selection.upperBound > body.upperBound {
+            NSSound.beep()
+            show(Notice("Formatierungen wirken nur im Textteil – setze den Cursor hinter \\begin{document}.", style: .warning))
+            return false
+        }
         var changed = false
         editor.groupEdits(named: actionName) {
             if let edit = makeEdit(editor.source, editor.selection) {
@@ -39,19 +47,19 @@ extension DocumentWorkspace {
     // MARK: - Zeichenformat
 
     func toggle(_ style: InlineStyle) {
-        performEdit(style.title) { source, selection in
+        performEdit(style.title, bodyOnly: true) { source, selection in
             InlineFormatter.toggle(style, in: source, selection: selection)
         }
     }
 
     func setFontSize(_ size: FontSize) {
-        performEdit("Schriftgrösse") { source, selection in
+        performEdit("Schriftgrösse", bodyOnly: true) { source, selection in
             InlineFormatter.setFontSize(size, in: source, selection: selection)
         }
     }
 
     func setColor(_ color: TextColor?) {
-        performEdit("Textfarbe", requirements: color == nil ? [] : [.xcolor]) { source, selection in
+        performEdit("Textfarbe", requirements: color == nil ? [] : [.xcolor], bodyOnly: true) { source, selection in
             InlineFormatter.setColor(color, in: source, selection: selection)
         }
     }
@@ -60,19 +68,19 @@ extension DocumentWorkspace {
 
     func applyParagraphStyle(_ style: ParagraphStyle) {
         let scheme = headingScheme
-        performEdit(style.title) { source, selection in
+        performEdit(style.title, bodyOnly: true) { source, selection in
             ParagraphFormatter.apply(style, in: source, selection: selection, scheme: scheme)
         }
     }
 
     func align(_ alignment: TextAlignment) {
-        performEdit(alignment.title) { source, selection in
+        performEdit(alignment.title, bodyOnly: true) { source, selection in
             ParagraphFormatter.align(alignment, in: source, selection: selection)
         }
     }
 
     func toggleList(_ kind: ListKind) {
-        performEdit(kind.title) { source, selection in
+        performEdit(kind.title, bodyOnly: true) { source, selection in
             ParagraphFormatter.toggleList(kind, in: source, selection: selection)
         }
     }
@@ -85,21 +93,27 @@ extension DocumentWorkspace {
 
     // MARK: - Bausteine
 
+    /// Fügt einen Baustein ein – an der nächsten Stelle, an der er Sinn ergibt
+    /// (siehe `InsertionPlanner`), und meldet, wenn er woanders gelandet ist.
     func insert(_ snippet: Snippet) {
-        let inMath = editor.map { editor in
-            editor.currentAnalysis?.isInsideMath(at: editor.selection.lowerBound) ?? false
-        } ?? false
-        performEdit(snippet.title, requirements: snippet.requirements) { source, selection in
-            SnippetInserter.edit(inserting: snippet, in: source, selection: selection, inMath: inMath)
+        guard let editor else { return }
+        let analysis = editor.currentAnalysis ?? LaTeXTokenizer.tokenize(editor.snapshot())
+        let plan = InsertionPlanner.plan(for: snippet, in: editor.source, selection: editor.selection, analysis: analysis)
+        let inMath = analysis.isInsideMath(at: plan.selection.lowerBound)
+        let changed = performEdit(snippet.title, requirements: snippet.requirements) { source, _ in
+            SnippetInserter.edit(inserting: snippet, in: source, selection: plan.selection, inMath: inMath)
+        }
+        if changed, let note = plan.note {
+            show(Notice(note, symbol: "arrow.turn.down.right"))
         }
     }
 
     /// Fügt ein mathematisches Zeichen ein (ausserhalb einer Formel in `$…$`).
     func insert(_ symbol: MathSymbol) {
-        let inMath = editor.map { editor in
-            editor.currentAnalysis?.isInsideMath(at: editor.selection.lowerBound) ?? false
-        } ?? false
-        insert(symbol.snippet(inMath: inMath))
+        guard let editor else { return }
+        let analysis = editor.currentAnalysis ?? LaTeXTokenizer.tokenize(editor.snapshot())
+        let plan = InsertionPlanner.plan(for: symbol.snippet(inMath: false), in: editor.source, selection: editor.selection, analysis: analysis)
+        insert(symbol.snippet(inMath: analysis.isInsideMath(at: plan.selection.lowerBound)))
     }
 
     /// Wählt ein Bild aus, legt es in den Ordner „Bilder“ neben dem Dokument

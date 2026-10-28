@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 import LaTeXKit
 
 /// Was das Dokumentfenster vom Editor braucht – ohne den Editor selbst zu kennen.
@@ -29,6 +29,10 @@ protocol EditorControlling: AnyObject {
     func groupEdits(named actionName: String, _ body: () -> Void)
     /// Wählt einen Bereich aus und scrollt ihn ins Bild.
     func select(_ range: Range<Int>)
+    /// Fenster des Editors (z. B. um das zugehörige NSDocument zu finden).
+    var window: NSWindow? { get }
+    /// Zeigt die Suchleiste über dem Text (wie ⌘F).
+    func showFindBar()
 }
 
 /// Was das Dokumentfenster von der PDF-Vorschau braucht.
@@ -36,4 +40,8 @@ protocol EditorControlling: AnyObject {
 protocol PDFViewerControlling: AnyObject {
     /// Zeigt eine SyncTeX-Position im PDF und hebt sie kurz hervor.
     func reveal(_ position: SyncTeXPosition)
+    /// Vergrössert (`factor` > 1) bzw. verkleinert die Ansicht um die Mitte.
+    func zoom(by factor: Double)
+    /// Zurück auf Seitenbreite.
+    func fitWidth()
 }

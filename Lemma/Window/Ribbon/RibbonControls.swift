@@ -9,6 +9,8 @@ import SwiftUI
 extension EnvironmentValues {
     /// Schmale Darstellung: Grosse Knöpfe zeigen nur ihr Symbol, ohne Beschriftung.
     @Entry var ribbonIsCompact = false
+    /// Farbe der Symbole – jede Registerkarte hat ihre eigene.
+    @Entry var ribbonTint = Color.accentColor
 }
 
 /// Symbol eines Knopfs: ein SF-Symbol oder ein Schriftzeichen wie „∫“.
@@ -76,10 +78,13 @@ struct RibbonLargeLabel: View {
     let icon: RibbonIcon
     var showsChevron = false
     @Environment(\.ribbonIsCompact) private var isCompact
+    @Environment(\.ribbonTint) private var tint
+    @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
         VStack(spacing: 3) {
             icon.image(size: isCompact ? 18 : 21)
+                .foregroundStyle(isEnabled ? tint : Color.secondary)
                 .frame(height: 26)
             if isCompact {
                 if showsChevron { chevron }
@@ -250,7 +255,9 @@ struct RibbonSmallMenuButton<Label: View, Content: View>: View {
 
 // MARK: - Gruppen
 
-/// Gruppe mit Überschrift unten, wie in Word („Schrift“, „Absatz“ …).
+/// Gruppe als eigene, leicht abgesetzte Karte mit Überschrift unten
+/// („Schrift“, „Absatz“ …). Karten wachsen mit der Breite des Fensters,
+/// damit die Leiste immer gleichmässig gefüllt ist.
 struct RibbonGroup<Content: View>: View {
     let title: String
     private let content: () -> Content
@@ -261,29 +268,29 @@ struct RibbonGroup<Content: View>: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(alignment: .top, spacing: 1) {
+        VStack(spacing: 1) {
+            HStack(alignment: .top, spacing: 2) {
                 content()
             }
-            .frame(maxHeight: .infinity, alignment: .top)
+            .frame(maxHeight: .infinity)
             Text(title)
-                .font(.system(size: 10))
+                .font(.system(size: 10, weight: .medium))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .fixedSize()
-                .padding(.bottom, 3)
+                .padding(.bottom, 4)
         }
-        .padding(.horizontal, 5)
-    }
-}
-
-/// Senkrechte Trennlinie zwischen zwei Gruppen.
-struct RibbonSeparator: View {
-    var body: some View {
-        Rectangle()
-            .fill(Color.primary.opacity(0.1))
-            .frame(width: 1)
-            .padding(.vertical, 8)
+        .padding(.horizontal, 8)
+        .padding(.top, 3)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.primary.opacity(0.035))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.07), lineWidth: 1)
+        )
     }
 }
 

@@ -6,42 +6,15 @@ import SwiftUI
 
 // MARK: - Start
 
-/// Formatvorlagen, Schrift und Absatz – das Wichtigste beim Schreiben.
+/// Schrift, Absatz, Formeln und Bearbeiten – das Wichtigste beim Schreiben.
 struct StartTab: View {
     let workspace: DocumentWorkspace
-    @Environment(\.ribbonDensity) private var density
 
     private var state: FormatState { workspace.formatState }
     private var currentSize: FontSize { state.inline.fontSize ?? .normalsize }
 
     var body: some View {
-        HStack(spacing: 0) {
-            RibbonGroup("Formatvorlagen") {
-                if density == .full {
-                    ForEach(ParagraphStyle.allCases) { style in
-                        ParagraphStyleTile(
-                            style: style,
-                            isSelected: state.paragraph.style == style,
-                            help: styleHelp(style)
-                        ) {
-                            workspace.applyParagraphStyle(style)
-                        }
-                    }
-                } else {
-                    RibbonMenuButton(state.paragraph.style.title, icon: .symbol("textformat.size")) {
-                        RibbonMenu(minWidth: 220) {
-                            ForEach(ParagraphStyle.allCases) { style in
-                                RibbonMenuRow(isChecked: state.paragraph.style == style, help: styleHelp(style)) {
-                                    workspace.applyParagraphStyle(style)
-                                } title: {
-                                    Text(style.title).font(ParagraphStyleTile.sampleFont(for: style))
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            RibbonSeparator()
+        HStack(spacing: 6) {
             RibbonGroup("Schrift") {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 1) {
@@ -67,7 +40,6 @@ struct StartTab: View {
                     }
                 }
             }
-            RibbonSeparator()
             RibbonGroup("Absatz") {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 1) {
@@ -97,14 +69,29 @@ struct StartTab: View {
                     }
                 }
             }
+            RibbonGroup("Formel") {
+                RibbonButton(title: "Im Text", icon: .symbol("function"), help: InsertTab.inlineFormula.help) {
+                    workspace.insert(InsertTab.inlineFormula)
+                }
+                .disabled(state.inMath)
+                SnippetButton(workspace: workspace, id: "display.unnumbered", title: "Abgesetzt")
+            }
+            RibbonGroup("Bearbeiten") {
+                RibbonButton(title: "Suchen", icon: .symbol("magnifyingglass"), help: "Suchen und Ersetzen (⌘F)") {
+                    workspace.showFindBar()
+                }
+                RibbonButton(
+                    title: "Auswählen",
+                    icon: .symbol("rectangle.dashed"),
+                    help: "Block am Cursor auswählen; nochmals klicken wählt den nächstgrösseren (⌥⌘A)"
+                ) {
+                    workspace.expandSelection()
+                }
+                RibbonButton(title: "Kommentar", icon: .symbol("percent"), help: "Zeilen auskommentieren oder wieder aktivieren (⌘/)") {
+                    workspace.toggleComment()
+                }
+            }
         }
-    }
-
-    private func styleHelp(_ style: ParagraphStyle) -> String {
-        if let command = workspace.headingScheme.command(for: style) {
-            return "\(style.title) – LaTeX: \\\(command){…}"
-        }
-        return "\(style.title) – normaler Fliesstext"
     }
 
     private func styleButton(_ style: InlineStyle, shortcut: String? = nil) -> some View {
@@ -160,63 +147,6 @@ struct StartTab: View {
             ColorPalette(current: state.inline.color) { color in
                 workspace.setColor(color)
             }
-        }
-    }
-}
-
-/// Kachel einer Formatvorlage mit Vorschau, wie die Formatvorlagen-Galerie in Word.
-struct ParagraphStyleTile: View {
-    let style: ParagraphStyle
-    let isSelected: Bool
-    let help: String
-    let action: () -> Void
-    @State private var isHovered = false
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 2) {
-                Text(verbatim: "AaBb")
-                    .font(Self.sampleFont(for: style))
-                    .foregroundStyle(.primary)
-                    .frame(height: 26)
-                Text(style.title)
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-            .frame(width: 70, height: 54)
-            .background(
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(Color(nsColor: .textBackgroundColor))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .strokeBorder(borderColor, lineWidth: isSelected ? 2 : 1)
-            )
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .padding(.horizontal, 2)
-        .padding(.top, 2)
-        .onHover { isHovered = $0 }
-        .help(help)
-        .accessibilityLabel(style.title)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-
-    private var borderColor: Color {
-        if isSelected { return .accentColor }
-        return Color.primary.opacity(isHovered ? 0.3 : 0.12)
-    }
-
-    /// Schrift der Vorschau – mit Serifen, wie im fertigen PDF.
-    static func sampleFont(for style: ParagraphStyle) -> Font {
-        switch style {
-        case .body: return .system(size: 13, design: .serif)
-        case .heading1: return .system(size: 18, weight: .bold, design: .serif)
-        case .heading2: return .system(size: 16, weight: .bold, design: .serif)
-        case .heading3: return .system(size: 14, weight: .bold, design: .serif)
-        case .heading4: return .system(size: 13, weight: .semibold, design: .serif)
         }
     }
 }
@@ -297,7 +227,7 @@ struct InsertTab: View {
     )
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 6) {
             RibbonGroup("Formeln") {
                 RibbonButton(title: Self.inlineFormula.title, icon: .symbol("function"), help: Self.inlineFormula.help) {
                     workspace.insert(Self.inlineFormula)
@@ -305,7 +235,6 @@ struct InsertTab: View {
                 .disabled(workspace.formatState.inMath)
                 SnippetButton(workspace: workspace, id: "display.unnumbered", title: "Abgesetzte Formel")
             }
-            RibbonSeparator()
             RibbonGroup("Abbildungen") {
                 RibbonButton(
                     title: "Bild",
@@ -314,16 +243,18 @@ struct InsertTab: View {
                 ) {
                     workspace.insertImageFromFile()
                 }
-                SnippetMenuButton("Tabelle", icon: .symbol("tablecells"), workspace: workspace, category: .tables)
-                SnippetMenuButton("Liste", icon: .symbol("list.bullet"), workspace: workspace, category: .lists)
+                RibbonMenuButton("Tabelle", icon: .symbol("tablecells"), help: "Tabelle in beliebiger Grösse") {
+                    TablePicker(workspace: workspace)
+                }
+                RibbonMenuButton("Liste", icon: .symbol("list.bullet"), help: "Aufzählung oder nummerierte Liste mit beliebig vielen Punkten") {
+                    CountedStructurePicker(structure: .list, workspace: workspace)
+                }
             }
-            RibbonSeparator()
             RibbonGroup("Gliederung") {
                 SnippetMenuButton("Überschrift", icon: .symbol("textformat.size"), workspace: workspace, category: .headings)
                 SnippetMenuButton("Satz und Beweis", icon: .symbol("checkmark.seal"), workspace: workspace, category: .theorems)
                 SnippetMenuButton("Aufgabe", icon: .symbol("pencil"), workspace: workspace, category: .document)
             }
-            RibbonSeparator()
             RibbonGroup("Text") {
                 VStack(alignment: .leading, spacing: 4) {
                     SnippetSmallButton(workspace: workspace, id: "text.footnote")
@@ -334,7 +265,6 @@ struct InsertTab: View {
                     SnippetSmallButton(workspace: workspace, id: "text.codeBlock")
                 }
             }
-            RibbonSeparator()
             RibbonGroup("Verweise und Seite") {
                 SnippetMenuButton(
                     "Verweis",
@@ -373,12 +303,15 @@ struct MathTab: View {
     }()
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 6) {
             RibbonGroup("Bausteine") {
                 SnippetButton(workspace: workspace, id: "formula.fraction")
                 SnippetButton(workspace: workspace, id: "formula.squareRoot", title: "Wurzel")
                 SnippetButton(workspace: workspace, id: "formula.superscript", title: "Potenz")
                 SnippetButton(workspace: workspace, id: "formula.subscript", title: "Index")
+                RibbonMenuButton("Vektor", icon: .symbol("arrow.right"), help: "Spaltenvektor mit beliebig vielen Einträgen") {
+                    CountedStructurePicker(structure: .vector, workspace: workspace)
+                }
                 SnippetMenuButton(
                     "Mehr",
                     icon: .symbol("ellipsis.circle"),
@@ -391,7 +324,6 @@ struct MathTab: View {
                     help: "Weitere Formel-Bausteine"
                 )
             }
-            RibbonSeparator()
             RibbonGroup("Analysis") {
                 SnippetButton(workspace: workspace, id: "formula.sum")
                 SnippetButton(workspace: workspace, id: "formula.integral")
@@ -403,7 +335,6 @@ struct MathTab: View {
                     ids: ["formula.derivative", "formula.partialDerivative"]
                 )
             }
-            RibbonSeparator()
             RibbonGroup("Symbole") {
                 if density == .full {
                     // Zwei Reihen mit je acht Zeichen.
@@ -427,19 +358,21 @@ struct MathTab: View {
                     SymbolPalette { workspace.insert($0) }
                 }
             }
-            RibbonSeparator()
             RibbonGroup("Abgesetzte Formeln") {
                 SnippetButton(workspace: workspace, id: "display.unnumbered", title: "Formel")
                 SnippetButton(workspace: workspace, id: "display.equation", title: "Nummeriert")
-                SnippetButton(workspace: workspace, id: "display.alignUnnumbered", title: "Ausgerichtet")
-                SnippetButton(workspace: workspace, id: "display.cases", title: "Fälle")
-                SnippetMenuButton(
-                    "Matrix",
-                    icon: .symbol("square.grid.3x3"),
-                    workspace: workspace,
-                    ids: ["display.matrix2", "display.matrix3", "display.system", "display.align"],
-                    help: "Matrizen, Gleichungssysteme und nummerierte mehrzeilige Formeln"
-                )
+                RibbonMenuButton("Rechnung", icon: .symbol("equal"), help: "Mehrere Zeilen, an den Gleichheitszeichen ausgerichtet") {
+                    CountedStructurePicker(structure: .alignedEquations, workspace: workspace)
+                }
+                RibbonMenuButton("System", icon: .symbol("equal.square"), help: "Gleichungssystem mit beliebig vielen Gleichungen") {
+                    CountedStructurePicker(structure: .equationSystem, workspace: workspace)
+                }
+                RibbonMenuButton("Fälle", icon: .symbol("curlybraces"), help: "Fallunterscheidung mit beliebig vielen Fällen") {
+                    CountedStructurePicker(structure: .cases, workspace: workspace)
+                }
+                RibbonMenuButton("Matrix", icon: .symbol("square.grid.3x3"), help: "Matrix oder Determinante in beliebiger Grösse") {
+                    MatrixPicker(workspace: workspace)
+                }
             }
         }
     }
@@ -454,70 +387,77 @@ struct LayoutTab: View {
 
     private var settings: DocumentSettings { workspace.documentSettings }
     private var hasPreamble: Bool { settings.documentClass != nil }
+    private var isPageScope: Bool { workspace.layoutScope == .page }
 
     var body: some View {
-        HStack(spacing: 0) {
-            Group {
-                RibbonGroup("Schrift") {
-                    RibbonMenuButton("Schriftart", icon: .symbol("textformat"), help: "Schriftart des ganzen Dokuments") {
-                        RibbonMenu(minWidth: 300) {
-                            ForEach(DocumentFont.allCases) { font in
-                                RibbonMenuRow(font.title, subtitle: font.subtitle, isChecked: settings.font == font) {
-                                    update { $0.font = font }
-                                }
-                            }
-                        }
+        HStack(spacing: 6) {
+            RibbonGroup("Anwenden auf") {
+                VStack(alignment: .leading, spacing: 6) {
+                    Picker("Anwenden auf", selection: Binding(
+                        get: { workspace.layoutScope },
+                        set: { workspace.layoutScope = $0 }
+                    )) {
+                        ForEach(LayoutScope.allCases) { Text($0.title).tag($0) }
                     }
-                    RibbonMenuButton("Grundgrösse", icon: .symbol("textformat.size"), help: "Schriftgrösse des Fliesstexts") {
-                        RibbonMenu {
-                            RibbonMenuRow("Standard (10 pt)", isChecked: settings.baseFontSize == nil) {
-                                update { $0.baseFontSize = nil }
-                            }
-                            ForEach([10, 11, 12], id: \.self) { size in
-                                RibbonMenuRow("\(size) pt", isChecked: settings.baseFontSize == size) {
-                                    update { $0.baseFontSize = size }
-                                }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                    .fixedSize()
+                    Text(isPageScope ? "Ränder und Abstand nur für diese Seite" : "Einstellung gilt im ganzen Dokument")
+                        .font(.system(size: 10.5))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .fixedSize()
+                }
+                .padding(.top, 8)
+                .help("„Diese Seite“: die Absätze der PDF-Seite mit dem Cursor bzw. die Auswahl. Lemma setzt dafür \\newgeometry bzw. eine Abstands-Umgebung.")
+            }
+            RibbonGroup("Seite") {
+                RibbonMenuButton("Ränder", icon: .symbol("rectangle.dashed"), help: "Seitenränder – Voreinstellungen oder eigene Werte") {
+                    MarginsEditor(workspace: workspace)
+                }
+                RibbonMenuButton("Zeilenabstand", icon: .symbol("line.3.horizontal"), help: "Abstand zwischen den Zeilen – Voreinstellungen oder eigener Faktor") {
+                    SpacingEditor(workspace: workspace)
+                }
+                RibbonMenuButton("Papier", icon: .symbol("doc"), help: isPageScope ? "Das Papierformat gilt immer für das ganze Dokument" : "Papierformat") {
+                    RibbonMenu {
+                        RibbonMenuRow("Standard", isChecked: settings.paperSize == nil) {
+                            update { $0.paperSize = nil }
+                        }
+                        ForEach(PaperSize.allCases) { size in
+                            RibbonMenuRow(size.title, isChecked: settings.paperSize == size) {
+                                update { $0.paperSize = size }
                             }
                         }
                     }
                 }
-                RibbonSeparator()
-                RibbonGroup("Seite") {
-                    RibbonMenuButton("Papier", icon: .symbol("doc"), help: "Papierformat") {
-                        RibbonMenu {
-                            RibbonMenuRow("Standard", isChecked: settings.paperSize == nil) {
-                                update { $0.paperSize = nil }
-                            }
-                            ForEach(PaperSize.allCases) { size in
-                                RibbonMenuRow(size.title, isChecked: settings.paperSize == size) {
-                                    update { $0.paperSize = size }
-                                }
+                .disabled(isPageScope || !hasPreamble)
+            }
+            .disabled(!isPageScope && !hasPreamble)
+            RibbonGroup("Schrift") {
+                RibbonMenuButton("Schriftart", icon: .symbol("textformat"), help: isPageScope ? "Die Schrift gilt immer für das ganze Dokument" : "Schriftart des ganzen Dokuments") {
+                    RibbonMenu(minWidth: 300) {
+                        ForEach(DocumentFont.allCases) { font in
+                            RibbonMenuRow(font.title, subtitle: font.subtitle, isChecked: settings.font == font) {
+                                update { $0.font = font }
                             }
                         }
                     }
-                    RibbonMenuButton("Ränder", icon: .symbol("rectangle.dashed"), help: "Seitenränder") {
-                        RibbonMenu {
-                            ForEach(PageMargins.allCases) { margins in
-                                RibbonMenuRow(margins.title, isChecked: settings.margins == margins) {
-                                    update { $0.margins = margins }
-                                }
-                            }
+                }
+                RibbonMenuButton("Grundgrösse", icon: .symbol("textformat.size"), help: "Schriftgrösse des Fliesstexts") {
+                    RibbonMenu {
+                        RibbonMenuRow("Standard (10 pt)", isChecked: settings.baseFontSize == nil) {
+                            update { $0.baseFontSize = nil }
                         }
-                    }
-                    RibbonMenuButton("Zeilenabstand", icon: .symbol("line.3.horizontal"), help: "Abstand zwischen den Zeilen") {
-                        RibbonMenu {
-                            ForEach(LineSpacing.allCases) { spacing in
-                                RibbonMenuRow(spacing.title, isChecked: settings.lineSpacing == spacing) {
-                                    update { $0.lineSpacing = spacing }
-                                }
+                        ForEach([10, 11, 12], id: \.self) { size in
+                            RibbonMenuRow("\(size) pt", isChecked: settings.baseFontSize == size) {
+                                update { $0.baseFontSize = size }
                             }
                         }
                     }
                 }
             }
-            // Ohne Präambel gibt es nichts einzustellen (wie im Inspektor).
-            .disabled(!hasPreamble)
-            RibbonSeparator()
+            // Schrift und Papier gelten immer für das ganze Dokument.
+            .disabled(isPageScope || !hasPreamble)
             RibbonGroup("Gliederung") {
                 SnippetButton(workspace: workspace, id: "heading.tableOfContents", title: "Inhalt")
                 SnippetButton(workspace: workspace, id: "text.newPage", title: "Neue Seite")
@@ -545,7 +485,7 @@ struct BlocksTab: View {
     }
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 6) {
             RibbonGroup("Auswahl") {
                 RibbonButton(
                     title: "Block auswählen",
@@ -555,7 +495,6 @@ struct BlocksTab: View {
                     workspace.expandSelection()
                 }
             }
-            RibbonSeparator()
             RibbonGroup(environmentCaption) {
                 RibbonMenuButton("Umwandeln", icon: .symbol("arrow.triangle.2.circlepath"), help: "Umgebung am Cursor in eine andere umwandeln") {
                     RibbonMenu {
@@ -594,7 +533,6 @@ struct BlocksTab: View {
                 }
                 .disabled(!state.inMath)
             }
-            RibbonSeparator()
             RibbonGroup("Zeilen") {
                 RibbonButton(title: "Nach oben", icon: .symbol("arrow.up"), help: "Zeilen nach oben verschieben (⌥⌘↑)") {
                     workspace.moveLines(up: true)

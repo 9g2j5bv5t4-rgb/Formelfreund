@@ -28,7 +28,10 @@ struct IssueListView: View {
                 .frame(height: 180)
             } else {
                 List(visibleIssues) { issue in
-                    IssueRow(issue: issue)
+                    IssueRow(issue: issue, advice: workspace.advice(for: issue)) { quickFix in
+                        workspace.applyFix(quickFix)
+                        dismiss()
+                    }
                         .contentShape(Rectangle())
                         .onTapGesture {
                             if let line = issue.line {
@@ -94,17 +97,19 @@ struct IssueListView: View {
     }
 }
 
-/// Eine Meldung mit Symbol, Zeile, Text und Quelltextausschnitt.
+/// Eine Meldung mit Symbol, Zeile, Erklärung, Vorschlag und Quelltextausschnitt.
 struct IssueRow: View {
     let issue: CompileIssue
+    var advice: IssueAdvice?
+    var fix: ((QuickFix) -> Void)?
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             symbol
             VStack(alignment: .leading, spacing: 3) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text(issue.message)
-                        .font(.callout)
+                    Text(advice?.explanation ?? issue.message)
+                        .font(.callout.weight(advice == nil ? .regular : .medium))
                         .textSelection(.enabled)
                     Spacer(minLength: 4)
                     if let line = issue.line {
@@ -114,12 +119,32 @@ struct IssueRow: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                if let advice {
+                    Text(advice.suggestion)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("LaTeX: \(issue.message)")
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                }
                 if let context = issue.contextBefore {
                     // So zeigt LaTeX die Fehlerstelle: Text bis zum Fehler, dann der Rest der Zeile.
                     Text(verbatim: context + (issue.contextAfter.map { " " + $0 } ?? ""))
                         .font(.system(.caption, design: .monospaced))
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
+                }
+                if let quickFix = advice?.fix, let fix {
+                    Button {
+                        fix(quickFix)
+                    } label: {
+                        Label(quickFix.title, systemImage: "wand.and.stars")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .padding(.top, 2)
                 }
             }
         }

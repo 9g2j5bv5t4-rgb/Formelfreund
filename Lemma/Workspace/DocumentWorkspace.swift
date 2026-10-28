@@ -69,6 +69,16 @@ final class DocumentWorkspace {
     var isShowingLog = false
     /// Inspektor (rechte Seitenleiste mit den Dokument-Einstellungen) sichtbar?
     var showsInspector = false
+    /// Kurze Rückmeldung unten im Fenster („Gespeichert“ …), siehe `show(_:)`.
+    var notice: Notice?
+    /// Gelten Ränder und Zeilenabstand im Register „Layout“ für alles oder nur diese Seite?
+    var layoutScope: LayoutScope = .document
+    /// Erklärung und Behebung zu jeder Meldung des letzten Laufs (nach `CompileIssue.id`).
+    private(set) var issueAdvice: [String: IssueAdvice] = [:]
+    /// Zustand der PDF-Vorschau für die Bedienleiste (Zoom, Seite).
+    var pdfScalePercent = 100
+    var pdfAutoScales = true
+    var pdfPageNumber = 0
 
     @ObservationIgnored weak var editor: (any EditorControlling)?
     @ObservationIgnored weak var pdfViewer: (any PDFViewerControlling)?
@@ -78,6 +88,7 @@ final class DocumentWorkspace {
     @ObservationIgnored private var autoCompileTask: Task<Void, Never>?
     @ObservationIgnored private var hasEdits = false
     @ObservationIgnored var formatStateTask: Task<Void, Never>?
+    @ObservationIgnored var noticeTask: Task<Void, Never>?
 
     /// Eigener Arbeitsordner für Hilfsdateien – wird erst beim ersten Kompilieren angelegt.
     private let buildDirectory: URL
@@ -195,6 +206,7 @@ final class DocumentWorkspace {
         } catch {
             guard !Task.isCancelled else { return }
             issues = [CompileIssue(severity: .error, message: error.localizedDescription)]
+            issueAdvice = [:]
             status = .failed
             isPDFOutdated = pdfDocument != nil
         }
@@ -209,6 +221,12 @@ final class DocumentWorkspace {
         }
         issues = (output.issues.filter { $0.belongs(toMainFile: Self.mainFileName) } + placeholderIssues)
             .sorted { ($0.severity, $0.line ?? .max) < ($1.severity, $1.line ?? .max) }
+        let lines = document.text.components(separatedBy: "\n")
+        issueAdvice = issues.reduce(into: [:]) { result, issue in
+            if result[issue.id] == nil, let advice = ErrorAdvisor.advice(for: issue, lines: lines) {
+                result[issue.id] = advice
+            }
+        }
 
         guard output.succeeded, let pdfURL = output.pdfURL else {
             status = .failed
@@ -312,6 +330,8 @@ final class DocumentWorkspace {
     func exportPDF() {
         guard let pdfData else { return }
         let panel = NSSavePanel()
+        panel.title = "PDF exportieren"
+        panel.prompt = "Exportieren"
         panel.allowedContentTypes = [.pdf]
         panel.nameFieldStringValue = suggestedPDFName
         panel.directoryURL = fileURL?.deletingLastPathComponent()
@@ -319,6 +339,7 @@ final class DocumentWorkspace {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
             try pdfData.write(to: url, options: .atomic)
+            show(Notice("PDF exportiert: \(url.lastPathComponent)", style: .success, revealURL: url))
         } catch {
             NSAlert(error: error).runModal()
         }

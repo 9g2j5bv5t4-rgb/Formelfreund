@@ -21,30 +21,37 @@ public enum LocalLayout {
 
     // MARK: - Bereich bestimmen
 
-    /// Bereich ganzer Zeilen für die Zeilen `lines` (1-basiert, z. B. aus SyncTeX für eine PDF-Seite).
+    /// Bereich für die Zeilen `lines` (1-basiert, z. B. aus SyncTeX für eine PDF-Seite):
+    /// die ganzen Absätze, zu denen diese Zeilen gehören.
     public static func region<S: UTF16Source>(in text: S, lines: ClosedRange<Int>) -> Range<Int>? {
         let index = LineIndex(units(of: text))
         guard let first = index.range(ofLine: max(1, lines.lowerBound)),
               let last = index.range(ofLine: min(lines.upperBound, index.lineCount)) else { return nil }
-        return snapped(first.lowerBound..<min(last.upperBound + 1, text.count), in: text)
+        let paragraphs = expandedToParagraphs(first.lowerBound..<min(last.upperBound + 1, text.count), in: text)
+        return snapped(paragraphs, in: text)
     }
 
     /// Bereich um eine Auswahl (ganze Zeilen) bzw. – ohne Auswahl – den Absatz am Cursor.
     public static func region<S: UTF16Source>(in text: S, around selection: Range<Int>) -> Range<Int>? {
-        var start = text.lineStart(before: selection.lowerBound)
-        var end = min(text.lineEnd(after: max(selection.lowerBound, selection.upperBound - 1)) + 1, text.count)
-        if selection.isEmpty {
-            // Absatz: bis zur nächsten Leerzeile nach oben und unten.
-            while start > 0 {
-                let previous = text.lineStart(before: start - 1)
-                if isBlankLine(text, from: previous) || isStructuralLine(text, from: previous) { break }
-                start = previous
-            }
-            while end < text.count, !isBlankLine(text, from: end), !isStructuralLine(text, from: end) {
-                end = min(text.lineEnd(after: end) + 1, text.count)
-            }
+        let start = text.lineStart(before: selection.lowerBound)
+        let end = min(text.lineEnd(after: max(selection.lowerBound, selection.upperBound - 1)) + 1, text.count)
+        let lines = start..<max(start, end)
+        return snapped(selection.isEmpty ? expandedToParagraphs(lines, in: text) : lines, in: text)
+    }
+
+    /// Erweitert ganze Zeilen bis zur nächsten Leerzeile (bzw. Überschrift) nach oben und unten.
+    static func expandedToParagraphs<S: UTF16Source>(_ lines: Range<Int>, in text: S) -> Range<Int> {
+        var start = lines.lowerBound
+        var end = lines.upperBound
+        while start > 0 {
+            let previous = text.lineStart(before: start - 1)
+            if isBlankLine(text, from: previous) || isStructuralLine(text, from: previous) { break }
+            start = previous
         }
-        return snapped(start..<end, in: text)
+        while end < text.count, !isBlankLine(text, from: end), !isStructuralLine(text, from: end) {
+            end = min(text.lineEnd(after: end) + 1, text.count)
+        }
+        return start..<end
     }
 
     /// Erweitert den Bereich, bis er keine Umgebung und keine Formel mehr teilt,

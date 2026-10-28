@@ -18,12 +18,14 @@ struct PDFPreviewView: NSViewRepresentable {
         view.displaysPageBreaks = true
         view.pageShadowsEnabled = true
         view.backgroundColor = .underPageBackgroundColor
+        // Etwas Luft um die Seiten – ruhiger, wie in der App „Vorschau“.
+        view.pageBreakMargins = NSEdgeInsets(top: 10, left: 14, bottom: 10, right: 14)
         view.setAccessibilityLabel("PDF-Vorschau")
         view.installZoomGesture()
         view.onCommandClick = { [weak workspace] pageIndex, point, bounds in
             workspace?.showSource(pageIndex: pageIndex, point: point, pageBounds: bounds)
         }
-        context.coordinator.view = view
+        context.coordinator.attach(to: view)
         workspace.pdfViewer = context.coordinator
         return view
     }
@@ -43,14 +45,51 @@ struct PDFPreviewView: NSViewRepresentable {
 @MainActor
 final class PDFPreviewCoordinator: PDFViewerControlling {
     let workspace: DocumentWorkspace
-    weak var view: SyncPDFView?
+    private(set) weak var view: SyncPDFView?
     private var shownRevision = -1
+    private var observers: [NSObjectProtocol] = []
     /// PDFKit zeichnet Seiten im Hintergrund. Das vorige Dokument bleibt deshalb
     /// bis zum nächsten Wechsel erhalten, statt mitten im Zeichnen zu verschwinden.
     private var previousDocument: PDFDocument?
 
     init(workspace: DocumentWorkspace) {
         self.workspace = workspace
+    }
+
+    /// Verbindet die Ansicht und meldet Zoom und Seite an den Arbeitsbereich
+    /// (für die Bedienleiste unter der Vorschau).
+    func attach(to view: SyncPDFView) {
+        self.view = view
+        for observer in observers { NotificationCenter.default.removeObserver(observer) }
+        observers = [Notification.Name.PDFViewScaleChanged, .PDFViewPageChanged, .PDFViewDocumentChanged].map { name in
+            NotificationCenter.default.addObserver(forName: name, object: view, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.publishState() }
+            }
+        }
+        publishState()
+    }
+
+    private func publishState() {
+        guard let view else { return }
+        let percent = Int((view.scaleFactor * 100).rounded())
+        if workspace.pdfScalePercent != percent { workspace.pdfScalePercent = percent }
+        if workspace.pdfAutoScales != view.autoScales { workspace.pdfAutoScales = view.autoScales }
+        var page = 0
+        if let document = view.document, let current = view.currentPage {
+            page = document.index(for: current) + 1
+        }
+        if workspace.pdfPageNumber != page { workspace.pdfPageNumber = page }
+    }
+
+    func zoom(by factor: Double) {
+        guard let view else { return }
+        view.zoom(to: view.scaleFactor * factor, around: NSPoint(x: view.bounds.midX, y: view.bounds.midY))
+        publishState()
+    }
+
+    func fitWidth() {
+        view?.autoScales = true
+        publishState()
     }
 
     func show(_ document: PDFDocument?, revision: Int) {

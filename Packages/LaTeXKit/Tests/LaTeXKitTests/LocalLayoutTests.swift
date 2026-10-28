@@ -117,14 +117,13 @@ struct LocalLayoutTests {
         #expect(text == "Zweiter Absatz,\nüber zwei Zeilen.\n\\begin{align*}\n  a &= b\n\\end{align*}\nDanach.\n")
     }
 
-    @Test("Zeilen einer Seite (SyncTeX) – keine Umgebung wird geteilt")
+    @Test("Zeilen einer Seite (SyncTeX) – ganze Absätze, keine Umgebung wird geteilt")
     func pageRegion() throws {
         let units = Array(document.utf16)
-        // Zeilen 5 bis 8 schneiden die align*-Umgebung (Zeilen 7–9).
-        let region = try #require(LocalLayout.region(in: units, lines: 5...8))
+        // Zeilen 6 bis 8 beginnen mitten im Absatz und schneiden die align*-Umgebung (Zeilen 7–9).
+        let region = try #require(LocalLayout.region(in: units, lines: 6...8))
         let text = (document as NSString).substring(with: NSRange(location: region.lowerBound, length: region.count))
-        #expect(text.hasPrefix("Zweiter Absatz,"))
-        #expect(text.hasSuffix("\\end{align*}\n"))
+        #expect(text == "Zweiter Absatz,\nüber zwei Zeilen.\n\\begin{align*}\n  a &= b\n\\end{align*}\nDanach.\n")
         // Nie die Präambel oder \end{document}.
         let all = try #require(LocalLayout.region(in: units, lines: 1...20))
         let whole = (document as NSString).substring(with: NSRange(location: all.lowerBound, length: all.count))

@@ -20,11 +20,22 @@ enum RibbonTab: String, CaseIterable, Identifiable {
         case .blocks: return "Blöcke"
         }
     }
+
+    /// Eigene Farbe für die Symbole jeder Karte – so heben sich die Bereiche ab.
+    var tint: Color {
+        switch self {
+        case .start: return .blue
+        case .insert: return .green
+        case .math: return .purple
+        case .layout: return .orange
+        case .blocks: return .teal
+        }
+    }
 }
 
 /// Wie viel die Leiste zeigt – je nach verfügbarer Breite.
 enum RibbonDensity {
-    /// Alles, inklusive Formatvorlagen-Kacheln und Schnellsymbolen.
+    /// Alles, inklusive der Schnellsymbole im Register „Formeln“.
     case full
     /// Ohne die breiten Extras (sie bleiben über Knöpfe erreichbar).
     case medium
@@ -49,7 +60,7 @@ struct Ribbon: View {
     @AppStorage("ribbonCollapsed") private var isCollapsed = false
 
     static let tabBarHeight: CGFloat = 30
-    static let contentHeight: CGFloat = 86
+    static let contentHeight: CGFloat = 92
 
     var body: some View {
         VStack(spacing: 0) {
@@ -75,7 +86,7 @@ struct Ribbon: View {
     private var tabBar: some View {
         HStack(spacing: 2) {
             ForEach(RibbonTab.allCases) { tab in
-                RibbonTabButton(title: tab.title, isSelected: tab == selectedTab && !isCollapsed) {
+                RibbonTabButton(title: tab.title, tint: tab.tint, isSelected: tab == selectedTab && !isCollapsed) {
                     selectedTab = tab
                     isCollapsed = false
                 }
@@ -98,8 +109,11 @@ struct Ribbon: View {
 
     // MARK: - Inhalt
 
+    /// Inhalt der gewählten Karte. Die Gruppen sind Karten, die sich die ganze
+    /// Breite teilen; `ViewThatFits` misst die natürliche Breite und nimmt die
+    /// erste Dichte, die hineinpasst.
     private func content(_ density: RibbonDensity) -> some View {
-        HStack(spacing: 0) {
+        Group {
             switch selectedTab {
             case .start: StartTab(workspace: workspace)
             case .insert: InsertTab(workspace: workspace)
@@ -107,20 +121,19 @@ struct Ribbon: View {
             case .layout: LayoutTab(workspace: workspace)
             case .blocks: BlocksTab(workspace: workspace)
             }
-            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 4)
-        .padding(.top, 2)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
         .environment(\.ribbonDensity, density)
         .environment(\.ribbonIsCompact, density == .compact)
-        .fixedSize(horizontal: true, vertical: false)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .environment(\.ribbonTint, selectedTab.tint)
     }
 }
 
 /// Eine Registerkarte: Text mit Akzentstrich darunter, wenn ausgewählt.
 private struct RibbonTabButton: View {
     let title: String
+    let tint: Color
     let isSelected: Bool
     let action: () -> Void
     @State private var isHovered = false
@@ -142,7 +155,7 @@ private struct RibbonTabButton: View {
             )
             .overlay(alignment: .bottom) {
                 Capsule()
-                    .fill(Color.accentColor)
+                    .fill(tint)
                     .frame(height: 2.5)
                     .padding(.horizontal, 10)
                     .offset(y: 3)
