@@ -55,7 +55,7 @@ struct AppCommands: Commands {
         }
 
         CommandGroup(after: .sidebar) {
-            Toggle("Format-Leiste anzeigen", isOn: $showFormatBar)
+            Toggle("Multifunktionsleiste anzeigen", isOn: $showFormatBar)
 
             Button(workspace?.showsInspector == true ? "Inspektor ausblenden" : "Inspektor einblenden") {
                 workspace?.showsInspector.toggle()

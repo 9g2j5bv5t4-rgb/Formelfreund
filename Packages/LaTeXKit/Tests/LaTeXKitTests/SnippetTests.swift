@@ -1026,3 +1026,48 @@ struct SnippetEditValidityTests {
         }
     }
 }
+
+@Suite("Symbol-Kacheln")
+struct MathSymbolTests {
+    private var allSymbols: [MathSymbol] { MathSymbolGroup.allCases.flatMap(\.symbols) }
+
+    @Test("Jedes Symbol hat Zeichen, Namen und einen LaTeX-Befehl")
+    func symbolsAreComplete() {
+        for symbol in allSymbols {
+            #expect(!symbol.glyph.isEmpty)
+            #expect(symbol.glyph.count == 1, "\(symbol.command): genau ein sichtbares Zeichen pro Kachel")
+            #expect(!symbol.name.isEmpty)
+            #expect(symbol.command.hasPrefix("\\"))
+            #expect(!symbol.command.contains(Placeholders.marker), "\(symbol.command)")
+        }
+        for group in MathSymbolGroup.allCases {
+            #expect(!group.symbols.isEmpty)
+            #expect(group.symbols.contains { $0.glyph == group.representativeGlyph }, "\(group.title)")
+        }
+    }
+
+    @Test("Befehle und Zeichen kommen nur einmal vor")
+    func symbolsAreUnique() {
+        #expect(Set(allSymbols.map(\.command)).count == allSymbols.count)
+        #expect(Set(allSymbols.map(\.glyph)).count == allSymbols.count)
+    }
+
+    @Test("Im Fliesstext wird das Symbol in $…$ gesetzt")
+    func insertsOutsideMath() {
+        let alpha = MathSymbolGroup.greekLowercase.symbols[0]
+        #expect(inserting(alpha.snippet(inMath: false), into: "Winkel | gross") == #"Winkel $\alpha$| gross"#)
+        let reals = MathSymbolGroup.numberSets.symbols.first { $0.command == #"\mathbb{R}"# }!
+        #expect(inserting(reals.snippet(inMath: false), into: "x aus |") == #"x aus $\mathbb{R}$|"#)
+        #expect(reals.snippet(inMath: false).requirements.map(\.name) == ["amssymb"])
+    }
+
+    @Test("In einer Formel folgt einem Befehlsnamen ein Leerzeichen")
+    func insertsInsideMath() {
+        let alpha = MathSymbolGroup.greekLowercase.symbols[0]
+        #expect(inserting(alpha.snippet(inMath: true), into: "$2|$", inMath: true) == #"$2\alpha |$"#)
+        let leq = MathSymbolGroup.relations.symbols.first { $0.command == #"\leq"# }!
+        #expect(inserting(leq.snippet(inMath: true), into: "$a | b$", inMath: true) == #"$a \leq | b$"#)
+        let reals = MathSymbolGroup.numberSets.symbols.first { $0.command == #"\mathbb{R}"# }!
+        #expect(inserting(reals.snippet(inMath: true), into: "$x \\in |$", inMath: true) == #"$x \in \mathbb{R}|$"#)
+    }
+}

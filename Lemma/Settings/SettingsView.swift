@@ -69,7 +69,7 @@ private struct EditorSettingsView: View {
                 }
                 Toggle("Zeilennummern anzeigen", isOn: $showLineNumbers)
                 Toggle("Aktuelle Zeile hervorheben", isOn: $highlightCurrentLine)
-                Toggle("Format-Leiste über dem Editor", isOn: $showFormatBar)
+                Toggle("Multifunktionsleiste über Editor und Vorschau", isOn: $showFormatBar)
             }
             Section {
                 Toggle("Klammern und $ automatisch schliessen", isOn: $autoPairing)

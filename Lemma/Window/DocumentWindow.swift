@@ -5,6 +5,7 @@ import SwiftUI
 struct DocumentWindow: View {
     let fileURL: URL?
     @State private var workspace: DocumentWorkspace
+    @AppStorage(AppSettings.Keys.showFormatBar) private var showsRibbon = AppSettings.Defaults.showFormatBar
 
     init(document: TeXDocument, fileURL: URL?) {
         self.fileURL = fileURL
@@ -17,14 +18,20 @@ struct DocumentWindow: View {
                 .frame(minHeight: DocumentSplitView.Metrics.minHeight, maxHeight: .infinity)
                 .navigationSplitViewColumnWidth(min: 150, ideal: 200, max: 320)
         } detail: {
-            // Editor, Vorschau und Inspektor in einer AppKit-Spaltenansicht
-            // (Begründung siehe DocumentSplitView). Alle Spalten zusammen
-            // passen auch auf Bildschirme mit 1024 Punkten Breite.
-            DocumentSplitView(
-                workspace: workspace,
-                showsPreview: workspace.showsPreview,
-                showsInspector: workspace.showsInspector
-            )
+            VStack(spacing: 0) {
+                // Multifunktionsleiste wie in Word – über Editor und Vorschau.
+                if showsRibbon {
+                    Ribbon(workspace: workspace)
+                }
+                // Editor, Vorschau und Inspektor in einer AppKit-Spaltenansicht
+                // (Begründung siehe DocumentSplitView). Alle Spalten zusammen
+                // passen auch auf Bildschirme mit 1024 Punkten Breite.
+                DocumentSplitView(
+                    workspace: workspace,
+                    showsPreview: workspace.showsPreview,
+                    showsInspector: workspace.showsInspector
+                )
+            }
         }
         .frame(minHeight: 400)
         .toolbar {

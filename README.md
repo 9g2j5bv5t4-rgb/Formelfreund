@@ -97,20 +97,27 @@ lässt sich schnell und automatisch testen (`swift test`) und bleibt
 | Tab / ⇧Tab | Nächster / vorheriger Platzhalter • |
 | ⌥⌘I | Inspektor (Schrift und Seite des Dokuments) |
 
-## Format-Leiste und Bausteine
+## Multifunktionsleiste und Bausteine
 
-Über dem Editor sitzt eine Format-Leiste wie in Word oder Pages: Absatzstil
-(Text, Überschrift 1–4), Fett/Kursiv/Unterstrichen, Schriftstil, Grösse,
-Farbe, Ausrichtung, Listen, Einrücken. Alles wird als normales LaTeX
-geschrieben – die Datei bleibt mit Overleaf und TeXShop kompatibel.
+Über Editor und Vorschau sitzt eine Multifunktionsleiste wie in Word – mit
+Registerkarten, grossen Symbolen und Gruppen. Alles wird als normales LaTeX
+geschrieben, die Datei bleibt mit Overleaf und TeXShop kompatibel.
 
-- **Einfügen (+):** über 60 Bausteine – Formeln, abgesetzte Formeln, Matrizen,
-  Definition/Satz/Beweis, Listen, Bilder, Tabellen. Platzhalter `•` springst
-  du mit Tab an.
-- **Block:** Umgebung umwandeln (z. B. Aufzählung → Nummerierung), auflösen,
-  in eine Umgebung einpacken, Formel-Nummerierung ein/aus.
-- **Inspektor:** Schriftart des Dokuments (Latin Modern, Times, Palatino,
+- **Start:** Formatvorlagen (Text, Überschrift 1–4) als Vorschau-Kacheln,
+  Fett/Kursiv/Unterstrichen, Schriftstil, Grösse, Farbe, Ausrichtung, Listen,
+  Einrücken.
+- **Einfügen:** Formeln, Bilder, Tabellen, Listen, Überschriften,
+  Definition/Satz/Beweis, Aufgabe/Lösung, Fussnote, Link, Verweise,
+  Seitenumbruch. Platzhalter `•` springst du mit Tab an.
+- **Formeln:** Bruch, Wurzel, Potenz, Index, Summe, Integral, Grenzwert,
+  Ableitung, Matrizen, Fallunterscheidung – und Symbol-Kacheln (griechische
+  Buchstaben, Vergleiche, Pfeile, Mengen, Zahlbereiche).
+- **Layout:** Schriftart des Dokuments (Latin Modern, Times, Palatino,
   Charter, Libertinus, Helvetica), Grundgrösse, Papier, Ränder, Zeilenabstand.
+- **Blöcke:** Umgebung auswählen, umwandeln, einpacken, auflösen,
+  Formel-Nummerierung, Zeilen verschieben, auskommentieren.
+- Wird das Fenster schmal, zeigt die Leiste nur noch Symbole. Mit dem Pfeil
+  rechts lässt sie sich auf die Registerkarten einklappen.
 - Fehlende Pakete (z. B. `xcolor` für Farben) ergänzt Lemma automatisch.
 
 ## Lizenzen

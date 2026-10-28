@@ -94,6 +94,14 @@ extension DocumentWorkspace {
         }
     }
 
+    /// Fügt ein mathematisches Zeichen ein (ausserhalb einer Formel in `$…$`).
+    func insert(_ symbol: MathSymbol) {
+        let inMath = editor.map { editor in
+            editor.currentAnalysis?.isInsideMath(at: editor.selection.lowerBound) ?? false
+        } ?? false
+        insert(symbol.snippet(inMath: inMath))
+    }
+
     /// Wählt ein Bild aus, legt es in den Ordner „Bilder“ neben dem Dokument
     /// und fügt eine Abbildung mit Beschriftung ein.
     func insertImageFromFile() {

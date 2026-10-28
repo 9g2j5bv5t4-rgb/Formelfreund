@@ -1,7 +1,8 @@
 import LaTeXKit
 import SwiftUI
 
-/// Mittlere Spalte: oben die Format-Leiste, dann der Editor, darunter bei Bedarf eine schmale Fehlerleiste.
+/// Mittlere Spalte: der Editor, darunter bei Bedarf eine schmale Fehlerleiste.
+/// (Die Multifunktionsleiste sitzt darüber und reicht über Editor und Vorschau.)
 struct EditorPane: View {
     let workspace: DocumentWorkspace
 
@@ -9,13 +10,9 @@ struct EditorPane: View {
     @AppStorage(AppSettings.Keys.showLineNumbers) private var showLineNumbers = AppSettings.Defaults.showLineNumbers
     @AppStorage(AppSettings.Keys.autoPairing) private var autoPairing = AppSettings.Defaults.autoPairing
     @AppStorage(AppSettings.Keys.highlightCurrentLine) private var highlightCurrentLine = AppSettings.Defaults.highlightCurrentLine
-    @AppStorage(AppSettings.Keys.showFormatBar) private var showFormatBar = AppSettings.Defaults.showFormatBar
 
     var body: some View {
         VStack(spacing: 0) {
-            if showFormatBar {
-                FormatBar(workspace: workspace)
-            }
             EditorView(
                 workspace: workspace,
                 fontSize: CGFloat(fontSize),
