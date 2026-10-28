@@ -92,8 +92,8 @@ private struct InsertButton: View {
 struct TablePicker: View {
     let workspace: DocumentWorkspace
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("tableStyle") private var style: TableStyle = .grid
-    @AppStorage("tableAlignment") private var alignment: ColumnAlignment = .center
+    @AppStorage("tableStyle") private var style: TableLineStyle = .grid
+    @AppStorage("tableAlignment") private var alignment: TableCellAlignment = .center
     @AppStorage("tableHeader") private var hasHeader = true
     @AppStorage("tableCaption") private var hasCaption = true
     @State private var rows = 3
@@ -113,11 +113,11 @@ struct TablePicker: View {
             }
             .monospacedDigit()
             Picker("Linien", selection: $style) {
-                ForEach(TableStyle.allCases) { Text($0.title).tag($0) }
+                ForEach(TableLineStyle.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.segmented)
             Picker("Inhalt", selection: $alignment) {
-                ForEach(ColumnAlignment.allCases) { Text($0.title).tag($0) }
+                ForEach(TableCellAlignment.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.segmented)
             Toggle("Erste Zeile als Kopfzeile (fett)", isOn: $hasHeader)
@@ -130,7 +130,7 @@ struct TablePicker: View {
 
     private func insert() {
         dismiss()
-        workspace.insert(StructureGenerator.table(TableOptions(
+        workspace.insert(StructureGenerator.table(LaTeXKit.TableOptions(
             rows: rows, columns: columns, style: style, alignment: alignment, hasHeader: hasHeader, hasCaption: hasCaption
         )))
     }

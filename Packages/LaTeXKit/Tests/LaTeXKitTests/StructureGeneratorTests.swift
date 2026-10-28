@@ -95,7 +95,7 @@ struct StructureGeneratorTests {
     func dumpForCompilation() throws {
         guard let path = ProcessInfo.processInfo.environment["LEMMA_DUMP_LATEX"] else { return }
         var snippets: [Snippet] = []
-        for style in TableStyle.allCases {
+        for style in TableLineStyle.allCases {
             for header in [true, false] {
                 for caption in [true, false] {
                     snippets.append(StructureGenerator.table(TableOptions(rows: 3, columns: 4, style: style, alignment: .right, hasHeader: header, hasCaption: caption)))

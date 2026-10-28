@@ -48,7 +48,7 @@ public enum MatrixDelimiter: String, CaseIterable, Sendable, Identifiable {
 }
 
 /// Linien einer Tabelle.
-public enum TableStyle: String, CaseIterable, Sendable, Identifiable {
+public enum TableLineStyle: String, CaseIterable, Sendable, Identifiable {
     /// Alle Linien, wie ein Gitter.
     case grid
     /// Nur oben, unter der Kopfzeile und unten – wie in Büchern (Paket booktabs).
@@ -68,7 +68,7 @@ public enum TableStyle: String, CaseIterable, Sendable, Identifiable {
 }
 
 /// Ausrichtung des Inhalts in den Spalten einer Tabelle.
-public enum ColumnAlignment: String, CaseIterable, Sendable, Identifiable {
+public enum TableCellAlignment: String, CaseIterable, Sendable, Identifiable {
     case left = "l"
     case center = "c"
     case right = "r"
@@ -89,8 +89,8 @@ public struct TableOptions: Hashable, Sendable {
     /// Zeilen inklusive Kopfzeile.
     public var rows: Int
     public var columns: Int
-    public var style: TableStyle
-    public var alignment: ColumnAlignment
+    public var style: TableLineStyle
+    public var alignment: TableCellAlignment
     /// Erste Zeile fett als Kopfzeile.
     public var hasHeader: Bool
     /// Als Abbildung mit Beschriftung („Tabelle 1: …“) statt nur zentriert im Text.
@@ -99,8 +99,8 @@ public struct TableOptions: Hashable, Sendable {
     public init(
         rows: Int,
         columns: Int,
-        style: TableStyle = .grid,
-        alignment: ColumnAlignment = .center,
+        style: TableLineStyle = .grid,
+        alignment: TableCellAlignment = .center,
         hasHeader: Bool = true,
         hasCaption: Bool = true
     ) {
