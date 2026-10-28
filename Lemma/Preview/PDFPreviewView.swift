@@ -19,6 +19,7 @@ struct PDFPreviewView: NSViewRepresentable {
         view.pageShadowsEnabled = true
         view.backgroundColor = .underPageBackgroundColor
         view.setAccessibilityLabel("PDF-Vorschau")
+        view.installZoomGesture()
         view.onCommandClick = { [weak workspace] pageIndex, point, bounds in
             workspace?.showSource(pageIndex: pageIndex, point: point, pageBounds: bounds)
         }
@@ -99,10 +100,17 @@ final class PDFPreviewCoordinator: PDFViewerControlling {
     }
 }
 
-/// `PDFView` mit ⌘-Klick für den Sprung zur Quelltextzeile.
+/// `PDFView` mit ⌘-Klick für den Sprung zur Quelltextzeile und Zoomen mit
+/// zwei Fingern auf dem Trackpad (wie in der App „Vorschau“).
 final class SyncPDFView: PDFView {
     /// Seite (0-basiert), Punkt in Seitenkoordinaten, Medienrahmen der Seite.
     var onCommandClick: ((Int, CGPoint, CGRect) -> Void)?
+
+    static let minimumZoom: CGFloat = 0.25
+    static let maximumZoom: CGFloat = 8
+
+    /// Grösse beim Beginn der Zwei-Finger-Geste.
+    private var scaleAtGestureStart: CGFloat = 1
 
     override func mouseDown(with event: NSEvent) {
         if event.modifierFlags.contains(.command),
@@ -116,5 +124,68 @@ final class SyncPDFView: PDFView {
             }
         }
         super.mouseDown(with: event)
+    }
+
+    // MARK: - Zoomen
+
+    /// Zwei Finger auseinander- oder zusammenziehen vergrössert bzw. verkleinert.
+    ///
+    /// Eine Gestenerkennung statt `magnify(with:)`, weil die Geste bei PDFKits
+    /// inneren Ansichten ankommt und nicht zuverlässig bis hierher weitergereicht
+    /// wird. `delaysMagnificationEvents` verhindert, dass PDFKit zusätzlich zoomt.
+    func installZoomGesture() {
+        let recognizer = NSMagnificationGestureRecognizer(target: self, action: #selector(handleMagnification(_:)))
+        recognizer.delaysMagnificationEvents = true
+        addGestureRecognizer(recognizer)
+    }
+
+    @objc private func handleMagnification(_ recognizer: NSMagnificationGestureRecognizer) {
+        switch recognizer.state {
+        case .began:
+            scaleAtGestureStart = scaleFactor
+        case .changed, .ended:
+            // `magnification` zählt ab Beginn der Geste (0 = unverändert, 1 = doppelt so gross).
+            zoom(to: scaleAtGestureStart * (1 + recognizer.magnification), around: recognizer.location(in: self))
+        default:
+            break
+        }
+    }
+
+    /// Zweimal mit zwei Fingern tippen: zwischen Seitenbreite und doppelter Grösse wechseln.
+    override func smartMagnify(with event: NSEvent) {
+        if autoScales {
+            zoom(to: scaleFactor * 2, around: convert(event.locationInWindow, from: nil))
+        } else {
+            autoScales = true
+        }
+    }
+
+    /// Ändert die Grösse so, dass die Stelle unter den Fingern an ihrem Platz bleibt.
+    /// - Parameter location: Punkt in Koordinaten dieser Ansicht.
+    func zoom(to newScale: CGFloat, around location: NSPoint) {
+        guard document != nil else { return }
+        let scale = min(max(newScale, Self.minimumZoom), Self.maximumZoom)
+        guard abs(scale - scaleFactor) > 0.0001 else { return }
+
+        // Stelle unter den Fingern merken (in Seitenkoordinaten, unabhängig von der Grösse).
+        let anchorPage = page(for: location, nearest: true)
+        let anchor = anchorPage.map { convert(location, to: $0) }
+
+        // Wer zoomt, will die feste Grösse behalten – auch nach dem nächsten Kompilieren.
+        autoScales = false
+        scaleFactor = scale
+
+        // So scrollen, dass die gemerkte Stelle wieder unter den Fingern liegt.
+        guard let anchorPage, let anchor,
+              let clipView = documentView?.enclosingScrollView?.contentView else { return }
+        layoutDocumentView()
+        let current = clipView.convert(convert(anchor, from: anchorPage), from: self)
+        let target = clipView.convert(location, from: self)
+        var origin = clipView.bounds.origin
+        origin.x += current.x - target.x
+        origin.y += current.y - target.y
+        let visible = clipView.constrainBoundsRect(NSRect(origin: origin, size: clipView.bounds.size))
+        clipView.scroll(to: visible.origin)
+        clipView.enclosingScrollView?.reflectScrolledClipView(clipView)
     }
 }

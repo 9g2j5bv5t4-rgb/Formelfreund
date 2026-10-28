@@ -51,6 +51,7 @@ enum SelfTest {
         }
         try? await Task.sleep(for: .seconds(1))
         snapshot("fenster", in: directory)
+        await testPDFZoom()
 
         // 2. Schnell hintereinander klicken – jede Aktion einzeln, dann gemischt.
         await repeatAction("PDF-Vorschau ein/aus", times: 30) { workspace.showsPreview.toggle() }
@@ -90,7 +91,42 @@ enum SelfTest {
         exit(1)
     }
 
+    /// Zoomen wie mit zwei Fingern: Die Stelle in der Mitte muss an ihrem Platz bleiben.
+    private static func testPDFZoom() async {
+        guard let pdfView = findView(SyncPDFView.self, in: documentWindow?.contentView?.superview),
+              let page = pdfView.page(for: NSPoint(x: pdfView.bounds.midX, y: pdfView.bounds.midY), nearest: true) else {
+            problems.append("PDF-Ansicht für den Zoom-Test nicht gefunden")
+            return
+        }
+        let center = NSPoint(x: pdfView.bounds.midX, y: pdfView.bounds.midY)
+        let before = pdfView.scaleFactor
+        let anchorBefore = pdfView.convert(center, to: page)
+        // Eine Geste in kleinen Schritten, wie das Trackpad sie meldet.
+        for step in 1...10 {
+            pdfView.zoom(to: before * (1 + CGFloat(step) * 0.1), around: center)
+            try? await Task.sleep(for: .milliseconds(30))
+        }
+        let after = pdfView.scaleFactor
+        let anchorAfter = pdfView.convert(center, to: page)
+        let drift = hypot(anchorAfter.x - anchorBefore.x, anchorAfter.y - anchorBefore.y)
+        log("PDF-Zoom: \(String(format: "%.2f", before)) → \(String(format: "%.2f", after)), Abweichung der Mitte \(String(format: "%.1f", drift)) pt")
+        if after < before * 1.9 { problems.append("PDF-Zoom vergrössert nicht") }
+        if drift > 3 { problems.append("PDF-Zoom hält die Stelle unter den Fingern nicht fest") }
+        // Zurück auf Seitenbreite für die weiteren Tests.
+        pdfView.autoScales = true
+        try? await Task.sleep(for: .milliseconds(300))
+    }
+
     // MARK: - Hilfen
+
+    private static func findView<T: NSView>(_ type: T.Type, in view: NSView?) -> T? {
+        guard let view else { return nil }
+        if let match = view as? T { return match }
+        for subview in view.subviews {
+            if let match = findView(type, in: subview) { return match }
+        }
+        return nil
+    }
 
     /// Führt eine Aktion mehrmals aus, mit wechselnden, teils sehr kurzen Pausen.
     private static func repeatAction(_ name: String, times: Int, _ action: () -> Void) async {
