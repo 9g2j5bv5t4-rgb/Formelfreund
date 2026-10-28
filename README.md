@@ -24,7 +24,16 @@ Voraussetzung: Mac mit Apple-Chip und macOS 26 oder neuer.
 
 ## Selbst bauen (mit Xcode)
 
-Nur nötig, wenn du am Code arbeitest:
+Falls die Server von GitHub gerade keinen Mac frei haben, baut diese Zeile die
+neueste Version direkt auf deinem Mac und installiert sie. Voraussetzung:
+[Xcode](https://apps.apple.com/app/xcode/id497799835) aus dem App Store, einmal
+geöffnet („Zustimmen“ klicken).
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/9g2j5bv5t4-rgb/Formelfreund/main/Scripts/build-local.sh | sh
+```
+
+Wenn du am Code arbeitest (im geklonten Repository):
 
 ```sh
 ./Scripts/build-and-run.sh
