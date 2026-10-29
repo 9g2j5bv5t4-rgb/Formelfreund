@@ -21,7 +21,6 @@ struct PDFPreviewView: NSViewRepresentable {
         // Etwas Luft um die Seiten – ruhiger, wie in der App „Vorschau“.
         view.pageBreakMargins = NSEdgeInsets(top: 10, left: 14, bottom: 10, right: 14)
         view.setAccessibilityLabel("PDF-Vorschau")
-        view.installZoomGesture()
         view.onCommandClick = { [weak workspace] pageIndex, point, bounds in
             workspace?.showSource(pageIndex: pageIndex, point: point, pageBounds: bounds)
         }
@@ -148,8 +147,8 @@ final class SyncPDFView: PDFView {
     static let minimumZoom: CGFloat = 0.25
     static let maximumZoom: CGFloat = 8
 
-    /// Grösse beim Beginn der Zwei-Finger-Geste.
-    private var scaleAtGestureStart: CGFloat = 1
+    /// Beobachter für Zoom-Gesten im Fenster (siehe `updateGestureMonitor`).
+    private var gestureMonitor: Any?
 
     override func mouseDown(with event: NSEvent) {
         if event.modifierFlags.contains(.command),
@@ -167,36 +166,51 @@ final class SyncPDFView: PDFView {
 
     // MARK: - Zoomen
 
-    /// Zwei Finger auseinander- oder zusammenziehen vergrössert bzw. verkleinert.
+    /// Zoomen mit dem Trackpad: zwei Finger auseinander- bzw. zusammenziehen,
+    /// zweimal mit zwei Fingern tippen wechselt zwischen Seitenbreite und doppelter Grösse.
     ///
-    /// Eine Gestenerkennung statt `magnify(with:)`, weil die Geste bei PDFKits
-    /// inneren Ansichten ankommt und nicht zuverlässig bis hierher weitergereicht
-    /// wird. `delaysMagnificationEvents` verhindert, dass PDFKit zusätzlich zoomt.
-    func installZoomGesture() {
-        let recognizer = NSMagnificationGestureRecognizer(target: self, action: #selector(handleMagnification(_:)))
-        recognizer.delaysMagnificationEvents = true
-        addGestureRecognizer(recognizer)
+    /// Die Gesten werden für das ganze Fenster abgefangen, bevor eine Ansicht sie
+    /// sieht, und hier verarbeitet, sobald der Zeiger über der Vorschau steht.
+    /// Sonst landen sie je nach Stelle bei PDFKits inneren Ansichten, die selbst
+    /// (oder gar nicht) zoomen – das machte das Zoomen unzuverlässig.
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        updateGestureMonitor()
     }
 
-    @objc private func handleMagnification(_ recognizer: NSMagnificationGestureRecognizer) {
-        switch recognizer.state {
-        case .began:
-            scaleAtGestureStart = scaleFactor
-        case .changed, .ended:
-            // `magnification` zählt ab Beginn der Geste (0 = unverändert, 1 = doppelt so gross).
-            zoom(to: scaleAtGestureStart * (1 + recognizer.magnification), around: recognizer.location(in: self))
+    private func updateGestureMonitor() {
+        if let gestureMonitor {
+            NSEvent.removeMonitor(gestureMonitor)
+            self.gestureMonitor = nil
+        }
+        guard window != nil else { return }
+        gestureMonitor = NSEvent.addLocalMonitorForEvents(matching: [.magnify, .smartMagnify]) { [weak self] event in
+            // Lokale Beobachter laufen immer auf dem Hauptthread.
+            let handled = MainActor.assumeIsolated { self?.handleZoomGesture(event) ?? false }
+            return handled ? nil : event
+        }
+    }
+
+    /// Verarbeitet eine Zoom-Geste, wenn sie über dieser Ansicht stattfindet.
+    /// - Returns: `true`, wenn die Geste verbraucht wurde.
+    private func handleZoomGesture(_ event: NSEvent) -> Bool {
+        guard let window, event.window === window, document != nil, !isHiddenOrHasHiddenAncestor else { return false }
+        let location = convert(event.locationInWindow, from: nil)
+        guard bounds.contains(location) else { return false }
+        switch event.type {
+        case .magnify:
+            // `magnification` ist die Änderung seit dem letzten Ereignis der Geste.
+            zoom(to: scaleFactor * (1 + event.magnification), around: location)
+        case .smartMagnify:
+            if autoScales {
+                zoom(to: scaleFactor * 2, around: location)
+            } else {
+                autoScales = true
+            }
         default:
-            break
+            return false
         }
-    }
-
-    /// Zweimal mit zwei Fingern tippen: zwischen Seitenbreite und doppelter Grösse wechseln.
-    override func smartMagnify(with event: NSEvent) {
-        if autoScales {
-            zoom(to: scaleFactor * 2, around: convert(event.locationInWindow, from: nil))
-        } else {
-            autoScales = true
-        }
+        return true
     }
 
     /// Ändert die Grösse so, dass die Stelle unter den Fingern an ihrem Platz bleibt.
