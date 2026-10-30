@@ -52,13 +52,15 @@ enum SelfTest {
         try? await Task.sleep(for: .seconds(1))
         snapshot("fenster", in: directory)
         await testPDFZoom()
-        // Jede Registerkarte der Multifunktionsleiste einmal zeigen.
-        for tab in RibbonTab.allCases {
-            UserDefaults.standard.set(tab.rawValue, forKey: "ribbonTab")
-            try? await Task.sleep(for: .milliseconds(400))
-            snapshot("leiste-\(tab.rawValue)", in: directory)
+        // Jedes Register der Format-Seitenleiste einmal zeigen.
+        workspace.showsInspector = true
+        for tab in InspectorTab.allCases {
+            workspace.inspectorTab = tab
+            try? await Task.sleep(for: .milliseconds(500))
+            snapshot("format-\(tab.rawValue)", in: directory)
         }
-        UserDefaults.standard.set(RibbonTab.start.rawValue, forKey: "ribbonTab")
+        workspace.inspectorTab = .text
+        workspace.showsInspector = false
 
         // 2. Schnell hintereinander klicken – jede Aktion einzeln, dann gemischt.
         await repeatAction("PDF-Vorschau ein/aus", times: 30) { workspace.showsPreview.toggle() }

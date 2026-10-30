@@ -97,31 +97,31 @@ lässt sich schnell und automatisch testen (`swift test`) und bleibt
 | Tab / ⇧Tab | Nächster / vorheriger Platzhalter • |
 | ⌥⌘I | Inspektor (Schrift und Seite des Dokuments) |
 
-## Multifunktionsleiste und Bausteine
+## Symbolleiste, Format-Seitenleiste und Bausteine
 
-Über Editor und Vorschau sitzt eine Multifunktionsleiste wie in Word – mit
-Registerkarten, grossen Symbolen und Gruppen als Karten. Alles wird als
-normales LaTeX geschrieben, die Datei bleibt mit Overleaf und TeXShop kompatibel.
+Die Oberfläche folgt Apples Richtlinien für Mac-Programme – aufgebaut wie
+Pages und Keynote. Alles wird als normales LaTeX geschrieben, die Datei bleibt
+mit Overleaf und TeXShop kompatibel. Jeder Befehl steht auch in der Menüleiste.
 
-- **Start:** Fett/Kursiv/Unterstrichen, Schriftstil, Grösse, Farbe,
-  Ausrichtung, Listen, Einrücken, Formeln, Suchen, Block auswählen, Kommentar.
-- **Einfügen:** Formeln, Bilder, Tabellen und Listen in frei wählbarer Grösse
-  (Raster aufziehen wie in Word), Überschriften, Definition/Satz/Beweis,
-  Aufgabe/Lösung, Fussnote, Link, Verweise, Seitenumbruch.
-- **Formeln:** Bruch, Wurzel, Potenz, Index, Vektor, Summe, Integral,
-  Grenzwert, Ableitung, Rechnungen, Gleichungssysteme, Fallunterscheidungen und
-  Matrizen in beliebiger Grösse, Symbol-Kacheln (griechische Buchstaben,
-  Vergleiche, Pfeile, Mengen, Zahlbereiche).
-- **Layout:** Ränder und Zeilenabstand mit Schnellwahl, Regler und Eingabefeld –
-  für das ganze Dokument oder nur „diese Seite“ (`\newgeometry` bzw. eine
-  Abstands-Umgebung um die Absätze dieser Seite). Schriftart, Grundgrösse, Papier.
-- **Blöcke:** Umgebung auswählen, umwandeln, einpacken, auflösen,
-  Formel-Nummerierung, Zeilen verschieben, auskommentieren.
+- **Symbolleiste:** Formel, Tabelle, Matrix, Bild, Liste und Bausteine zum
+  Einfügen; rechts Status, Kompilieren, Vorschau und Format. Anpassbar über
+  „Darstellung → Symbolleiste anpassen“ (dort auch Fett, Kursiv, Suchen …).
+- **Format-Seitenleiste** (⌥⌘I), drei Register:
+  - *Text:* Fett/Kursiv/Unterstrichen, Schriftstil, Grösse, Farbe,
+    Ausrichtung, Listen, Einzug, Block-Werkzeuge (auswählen, umwandeln,
+    einpacken, auflösen, nummerieren), Zeilen verschieben, auskommentieren.
+  - *Formel:* alle Formel-Bausteine, Matrizen, Systeme, Fälle, Rechnungen und
+    Vektoren in beliebiger Grösse, alle Zeichen nach Gruppen.
+  - *Layout:* Ränder und Zeilenabstand mit Voreinstellung, Regler und
+    Eingabefeld – für das ganze Dokument oder nur „diese Seite“ –, Schriftart,
+    Grundgrösse, Papier.
+- **Freie Grössen:** Tabellen und Matrizen per Raster aufziehen (wie in Word),
+  Zeilen und Spalten bis 20 × 20.
 - **Passende Stelle:** Bausteine landen dort, wo sie Sinn ergeben – nie in der
   Präambel oder nach `\end{document}`, abgesetzte Formeln hinter der Formel am
   Cursor, Tabellen nicht in Tabellen, Überschriften nicht in Listen.
-- **Fehlerhilfe:** Fehler werden auf Deutsch erklärt, mit Lösungsvorschlag und –
-  wo möglich – einem Knopf „Beheben“ (Paket laden, Tippfehler, falsches `\end`).
+- **Fehlerhilfe:** Fehler werden über dem Editor auf Deutsch erklärt, mit
+  Lösungsvorschlag und – wo möglich – „Beheben“ (Paket laden, Tippfehler …).
 - **Speichern** (⌘S) und PDF-Export bestätigen sich mit einer kurzen Meldung.
 - Fehlende Pakete (z. B. `xcolor` für Farben) ergänzt Lemma automatisch.
 

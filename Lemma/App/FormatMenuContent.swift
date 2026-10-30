@@ -82,5 +82,20 @@ struct FormatMenuContent: View {
         }
         Button("Auskommentieren ein/aus") { workspace?.toggleComment() }
             .keyboardShortcut("/", modifiers: .command)
+
+        Divider()
+
+        // Seite und Dokument (Register „Layout“ der Format-Seitenleiste).
+        Picker("Ränder und Abstand gelten für", selection: Binding(
+            get: { workspace?.layoutScope ?? .document },
+            set: { workspace?.layoutScope = $0 }
+        )) {
+            ForEach(LayoutScope.allCases) { scope in
+                Text(scope.title).tag(scope)
+            }
+        }
+        Button("Seitenränder …") { workspace?.showInspector(.layout) }
+        Button("Zeilenabstand …") { workspace?.showInspector(.layout) }
+        Button("Schrift und Papier …") { workspace?.showInspector(.layout) }
     }
 }

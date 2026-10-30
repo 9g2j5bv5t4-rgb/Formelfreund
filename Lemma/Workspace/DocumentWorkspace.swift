@@ -73,6 +73,10 @@ final class DocumentWorkspace {
     var notice: Notice?
     /// Gelten Ränder und Zeilenabstand im Register „Layout“ für alles oder nur diese Seite?
     var layoutScope: LayoutScope = .document
+    /// Gewähltes Register der Format-Seitenleiste.
+    var inspectorTab: InspectorTab = .text
+    /// Offener Dialog für einen Baustein in freier Grösse (aus der Menüleiste).
+    var structureSheet: StructureSheet?
     /// Erklärung und Behebung zu jeder Meldung des letzten Laufs (nach `CompileIssue.id`).
     private(set) var issueAdvice: [String: IssueAdvice] = [:]
     /// Zustand der PDF-Vorschau für die Bedienleiste (Zoom, Seite).

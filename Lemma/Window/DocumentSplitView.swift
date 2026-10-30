@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// Editor | PDF-Vorschau | Inspektor nebeneinander – als native AppKit-Spaltenansicht.
+/// Editor | PDF-Vorschau | Format-Seitenleiste nebeneinander – als native AppKit-Spaltenansicht.
 ///
 /// Warum nicht SwiftUIs `HSplitView` und `.inspector`? Beim schnellen Ein- und
 /// Ausblenden gaben sich deren Spalten gegenseitig wechselnde Mindestgrössen
@@ -21,9 +21,9 @@ struct DocumentSplitView: NSViewControllerRepresentable {
     enum Metrics {
         static let editorMinWidth: CGFloat = 280
         static let previewMinWidth: CGFloat = 220
-        static let inspectorMinWidth: CGFloat = 220
-        static let inspectorIdealWidth: CGFloat = 250
-        static let inspectorMaxWidth: CGFloat = 320
+        static let inspectorMinWidth: CGFloat = 250
+        static let inspectorIdealWidth: CGFloat = 285
+        static let inspectorMaxWidth: CGFloat = 380
         static let minHeight: CGFloat = 200
     }
 
@@ -69,7 +69,7 @@ final class DocumentSplitViewController: NSSplitViewController {
         editorItem = NSSplitViewItem(viewController: Self.host(EditorPane(workspace: workspace), width: 500))
         previewItem = NSSplitViewItem(viewController: Self.host(PreviewPane(workspace: workspace), width: 500))
         inspectorItem = NSSplitViewItem(viewController: Self.host(
-            DocumentInspector(workspace: workspace),
+            FormatInspector(workspace: workspace),
             width: DocumentSplitView.Metrics.inspectorIdealWidth
         ))
         super.init(nibName: nil, bundle: nil)
@@ -107,6 +107,24 @@ final class DocumentSplitViewController: NSSplitViewController {
             name: NSSplitView.didResizeSubviewsNotification,
             object: splitView
         )
+    }
+
+    override func viewDidAppear() {
+        super.viewDidAppear()
+        showToolbarLabelsOnce()
+    }
+
+    /// Beim allerersten Start zeigt die Symbolleiste Symbol *und* Text (wie Pages und
+    /// Keynote). Danach gilt, was der Nutzer per Rechtsklick auf die Leiste wählt.
+    private func showToolbarLabelsOnce() {
+        let key = "toolbarLabelsShownOnce"
+        guard !UserDefaults.standard.bool(forKey: key) else { return }
+        // Die Symbolleiste von SwiftUI kommt erst kurz nach dem Fenster.
+        Task { @MainActor [weak self] in
+            guard let toolbar = self?.view.window?.toolbar else { return }
+            toolbar.displayMode = .iconAndLabel
+            UserDefaults.standard.set(true, forKey: key)
+        }
     }
 
     @available(*, unavailable)

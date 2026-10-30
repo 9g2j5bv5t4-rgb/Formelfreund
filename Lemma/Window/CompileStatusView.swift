@@ -22,7 +22,7 @@ struct CompileStatusView: View {
             // Feste Breite: Die Symbolleiste soll nicht bei jeder Statusänderung
             // neu angeordnet werden (das löste zusammen mit dem Fenster-Layout
             // unnötige Layout-Durchgänge aus).
-            .frame(width: 230)
+            .frame(width: 200)
         }
         .buttonStyle(.borderless)
         .help("Meldungen anzeigen")

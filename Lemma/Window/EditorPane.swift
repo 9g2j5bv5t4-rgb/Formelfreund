@@ -1,8 +1,10 @@
 import LaTeXKit
 import SwiftUI
 
-/// Mittlere Spalte: der Editor, darunter bei Bedarf eine schmale Fehlerleiste.
-/// (Die Multifunktionsleiste sitzt darüber und reicht über Editor und Vorschau.)
+/// Mittlere Spalte: der Editor, darüber bei Bedarf der erste Fehler mit Erklärung.
+///
+/// Der Fehler steht oben statt in einer Leiste am unteren Rand: Fenster werden oft
+/// so verschoben, dass der untere Rand nicht zu sehen ist (Apple, Windows).
 struct EditorPane: View {
     let workspace: DocumentWorkspace
 
@@ -13,13 +15,6 @@ struct EditorPane: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            EditorView(
-                workspace: workspace,
-                fontSize: CGFloat(fontSize),
-                showLineNumbers: showLineNumbers,
-                autoPairing: autoPairing,
-                highlightCurrentLine: highlightCurrentLine
-            )
             if let issue = workspace.errors.first {
                 IssueBar(
                     issue: issue,
@@ -28,14 +23,21 @@ struct EditorPane: View {
                     reveal: { if let line = issue.line { workspace.reveal(line: line) } },
                     fix: { workspace.applyFix($0) }
                 )
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .transition(.move(edge: .top).combined(with: .opacity))
             }
+            EditorView(
+                workspace: workspace,
+                fontSize: CGFloat(fontSize),
+                showLineNumbers: showLineNumbers,
+                autoPairing: autoPairing,
+                highlightCurrentLine: highlightCurrentLine
+            )
         }
         .animation(.easeInOut(duration: 0.2), value: workspace.errors.first?.id)
     }
 }
 
-/// Schmale Leiste unter dem Editor mit dem ersten Fehler – auf Deutsch erklärt,
+/// Schmale Leiste über dem Editor mit dem ersten Fehler – auf Deutsch erklärt,
 /// mit Vorschlag und (wenn möglich) einem Knopf, der den Fehler behebt.
 struct IssueBar: View {
     let issue: CompileIssue
@@ -92,8 +94,8 @@ struct IssueBar: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 7)
-        .background(.bar)
-        .overlay(alignment: .top) { Divider() }
+        .background(Color.red.opacity(0.07))
+        .overlay(alignment: .bottom) { Divider() }
     }
 
     private var helpText: String {

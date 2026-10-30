@@ -2,9 +2,8 @@ import AppKit
 import LaTeXKit
 import SwiftUI
 
-// Einträge, die in der Menüleiste von macOS (Menüs „Format“ und „Einfügen“)
-// gebraucht werden. Die Multifunktionsleiste über dem Editor hat eigene,
-// grössere Bedienelemente (siehe Window/Ribbon).
+// Einträge für die Menüleiste (Menüs „Format“ und „Einfügen“) und für das
+// Menü „Bausteine“ in der Symbolleiste.
 
 /// Einträge für das Farbmenü (in der Leiste und in der Menüleiste).
 struct ColorMenuItems: View {

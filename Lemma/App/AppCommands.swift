@@ -12,7 +12,6 @@ struct AppCommands: Commands {
     @FocusedValue(\.workspace) private var workspace
     @AppStorage(AppSettings.Keys.autoCompile) private var autoCompile = AppSettings.Defaults.autoCompile
     @AppStorage(AppSettings.Keys.editorFontSize) private var fontSize = AppSettings.Defaults.editorFontSize
-    @AppStorage(AppSettings.Keys.showFormatBar) private var showFormatBar = AppSettings.Defaults.showFormatBar
 
     var body: some Commands {
         // „Speichern“ statt „Sichern“ – mit Bestätigung im Fenster.
@@ -72,17 +71,33 @@ struct AppCommands: Commands {
             FormatMenuContent(workspace: workspace)
         }
 
+        // Alles, was Symbolleiste und Format-Seitenleiste einfügen können.
         CommandMenu("Einfügen") {
-            InsertMenuItems(workspace: workspace)
+            Group {
+                FormulaMenuItems(workspace: workspace)
+                Divider()
+                Button("Tabelle …") { workspace?.presentStructure(.table) }
+                Menu("Liste") {
+                    ListMenuItems(workspace: workspace)
+                }
+                Divider()
+                InsertMenuItems(workspace: workspace)
+            }
+            .disabled(workspace == nil)
         }
 
         CommandGroup(after: .sidebar) {
-            Toggle("Multifunktionsleiste anzeigen", isOn: $showFormatBar)
-
-            Button(workspace?.showsInspector == true ? "Inspektor ausblenden" : "Inspektor einblenden") {
+            Button(workspace?.showsInspector == true ? "Format-Seitenleiste ausblenden" : "Format-Seitenleiste einblenden") {
                 workspace?.showsInspector.toggle()
             }
             .keyboardShortcut("i", modifiers: [.command, .option])
+            .disabled(workspace == nil)
+
+            Menu("Format-Seitenleiste zeigen") {
+                ForEach(InspectorTab.allCases) { tab in
+                    Button(tab.title) { workspace?.showInspector(tab) }
+                }
+            }
             .disabled(workspace == nil)
 
             Button(workspace?.showsPreview == false ? "PDF-Vorschau einblenden" : "PDF-Vorschau ausblenden") {

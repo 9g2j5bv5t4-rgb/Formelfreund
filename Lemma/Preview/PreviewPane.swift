@@ -74,7 +74,6 @@ struct PreviewPane: View {
 /// Schwebende Bedienleiste unter der Vorschau: Zoom und Seitenzahl, wie in der App „Vorschau“.
 private struct PreviewControls: View {
     let workspace: DocumentWorkspace
-    @State private var isHovered = false
 
     var body: some View {
         HStack(spacing: 2) {
@@ -98,11 +97,8 @@ private struct PreviewControls: View {
         }
         .padding(.horizontal, 6)
         .padding(.vertical, 4)
-        .background(.regularMaterial, in: Capsule())
-        .overlay(Capsule().strokeBorder(Color.primary.opacity(0.08)))
-        .shadow(color: .black.opacity(0.12), radius: 8, y: 2)
-        .opacity(isHovered ? 1 : 0.88)
-        .onHover { isHovered = $0 }
+        // Schwebende Bedienleiste über dem PDF (funktionale Ebene): Liquid Glass.
+        .glassEffect(.regular, in: Capsule())
     }
 
     private func controlButton(_ title: String, systemImage: String, isOn: Bool = false, action: @escaping () -> Void) -> some View {
@@ -111,7 +107,7 @@ private struct PreviewControls: View {
                 .font(.system(size: 12))
                 .frame(width: 24, height: 20)
         }
-        .buttonStyle(RibbonButtonStyle(isOn: isOn))
+        .buttonStyle(QuietButtonStyle(isOn: isOn))
         .help(title)
         .accessibilityLabel(title)
     }
@@ -133,9 +129,7 @@ private struct OutdatedBadge: View {
             .padding(.vertical, 6)
         }
         .buttonStyle(.plain)
-        .background(.regularMaterial, in: Capsule())
-        .overlay(Capsule().strokeBorder(.separator))
-        .shadow(color: .black.opacity(0.12), radius: 6, y: 2)
+        .glassEffect(.regular, in: Capsule())
         .help("Zur ersten Fehlerstelle springen")
     }
 }

@@ -1,9 +1,15 @@
 import LaTeXKit
 import SwiftUI
 
-// Auswahlfenster mit freier Grösse (Tabellen, Matrizen, Gleichungen, Listen)
-// und eigenen Werten (Ränder, Zeilenabstand). Wie in Word: mit der Maus über
-// ein Raster fahren und klicken – oder die Werte genau einstellen.
+// Auswahlfenster für Bausteine in freier Grösse (Tabellen, Matrizen,
+// Gleichungen, Listen): mit der Maus über ein Raster fahren und klicken –
+// oder die Werte genau einstellen. Sie erscheinen als Popover an Knöpfen der
+// Symbolleiste und Seitenleiste oder als Dialog aus der Menüleiste.
+
+extension EnvironmentValues {
+    /// Das Auswahlfenster ist ein Dialog (aus der Menüleiste) und braucht „Abbrechen“.
+    @Entry var pickerIsSheet = false
+}
 
 // MARK: - Raster zum Aufziehen
 
@@ -73,13 +79,19 @@ struct PickerHeader: View {
     }
 }
 
-/// „Einfügen“-Knopf unten rechts.
+/// „Einfügen“ unten rechts – im Dialog zusätzlich „Abbrechen“.
 private struct InsertButton: View {
     let action: () -> Void
+    @Environment(\.pickerIsSheet) private var isSheet
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         HStack {
             Spacer()
+            if isSheet {
+                Button("Abbrechen") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+            }
             Button("Einfügen", action: action)
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
@@ -328,115 +340,7 @@ struct CountedStructurePicker: View {
     }
 }
 
-// MARK: - Seitenränder
-
-struct MarginsEditor: View {
-    let workspace: DocumentWorkspace
-    @Environment(\.dismiss) private var dismiss
-    @State private var sizes: MarginSizes
-    @State private var individually: Bool
-
-    init(workspace: DocumentWorkspace) {
-        self.workspace = workspace
-        let current = workspace.layoutScope == .document ? workspace.documentSettings.margins.sizes : nil
-        let start = current ?? MarginSizes(uniform: 2.5)
-        _sizes = State(initialValue: start)
-        _individually = State(initialValue: !start.isUniform)
-    }
-
-    private var isPageScope: Bool { workspace.layoutScope == .page }
-    private var currentMargins: PageMargins? { isPageScope ? nil : workspace.documentSettings.margins }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            PickerHeader(
-                title: "Seitenränder",
-                subtitle: isPageScope
-                    ? "Gilt für die Absätze dieser Seite (bzw. die Auswahl) – sie beginnen dafür auf einer neuen Seite."
-                    : "Gilt für das ganze Dokument."
-            )
-            HStack(spacing: 6) {
-                ForEach(PageMargins.presets) { preset in
-                    PresetChip(
-                        title: presetTitle(preset),
-                        isSelected: currentMargins == preset,
-                        preview: { MarginsPreview(sizes: preset.sizes, width: 30) }
-                    ) {
-                        dismiss()
-                        workspace.applyMargins(preset)
-                    }
-                }
-            }
-            Divider()
-            Text("Eigene Ränder")
-                .font(.subheadline.weight(.semibold))
-            HStack(alignment: .top, spacing: 14) {
-                MarginsPreview(sizes: sizes, width: 74)
-                VStack(alignment: .leading, spacing: 8) {
-                    if individually {
-                        valueRow("Oben", \.top)
-                        valueRow("Unten", \.bottom)
-                        valueRow("Links", \.left)
-                        valueRow("Rechts", \.right)
-                    } else {
-                        valueRow("Alle Seiten", nil)
-                    }
-                    Toggle("Jede Seite einzeln", isOn: $individually.animation(.easeInOut(duration: 0.15)))
-                        .onChange(of: individually) { _, separate in
-                            if !separate { sizes = MarginSizes(uniform: sizes.left) }
-                        }
-                }
-            }
-            HStack {
-                Spacer()
-                Button("Übernehmen") {
-                    dismiss()
-                    workspace.applyMargins(PageMargins(sizes: sizes))
-                }
-                .buttonStyle(.borderedProminent)
-                .keyboardShortcut(.defaultAction)
-            }
-        }
-        .padding(14)
-        .frame(width: 380)
-    }
-
-    private func presetTitle(_ preset: PageMargins) -> String {
-        switch preset {
-        case .standard: return "Standard"
-        case .narrow: return "Schmal"
-        case .normal: return "Normal"
-        case .wide: return "Breit"
-        case .custom: return "Eigene"
-        }
-    }
-
-    /// Regler und Eingabefeld für einen Rand (`nil` = alle vier gleich).
-    private func valueRow(_ title: String, _ side: WritableKeyPath<MarginSizes, Double>?) -> some View {
-        let binding = Binding<Double>(
-            get: { side.map { sizes[keyPath: $0] } ?? sizes.left },
-            set: { newValue in
-                let value = min(max((newValue * 10).rounded() / 10, MarginSizes.range.lowerBound), MarginSizes.range.upperBound)
-                if let side { sizes[keyPath: side] = value } else { sizes = MarginSizes(uniform: value) }
-            }
-        )
-        return VStack(alignment: .leading, spacing: 2) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            HStack(spacing: 8) {
-                Slider(value: binding, in: MarginSizes.range, step: 0.1)
-                    .controlSize(.small)
-                TextField(title, value: binding, format: .number.precision(.fractionLength(0...2)))
-                    .labelsHidden()
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 48)
-                Text("cm")
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-}
+// MARK: - Vorschauen für Ränder und Zeilenabstand
 
 /// Kleine Seite mit gestricheltem Satzspiegel – zeigt die Ränder massstäblich (A4).
 struct MarginsPreview: View {
@@ -472,114 +376,6 @@ struct MarginsPreview: View {
         .frame(width: width, height: width * 1.414)
         .animation(.easeInOut(duration: 0.12), value: sizes)
         .accessibilityHidden(true)
-    }
-}
-
-/// Voreinstellung als Kachel mit kleiner Vorschau.
-private struct PresetChip<Preview: View>: View {
-    let title: String
-    let isSelected: Bool
-    @ViewBuilder let preview: () -> Preview
-    let action: () -> Void
-    @State private var isHovered = false
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 5) {
-                preview()
-                    .frame(height: 44)
-                Text(title)
-                    .font(.caption)
-                    .lineLimit(1)
-            }
-            .frame(width: 72, height: 70)
-            .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(isSelected ? Color.accentColor.opacity(0.16) : Color.primary.opacity(isHovered ? 0.08 : 0.04))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .strokeBorder(isSelected ? Color.accentColor : Color.clear, lineWidth: 1.5)
-            )
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .onHover { isHovered = $0 }
-        .accessibilityLabel(title)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-}
-
-// MARK: - Zeilenabstand
-
-struct SpacingEditor: View {
-    let workspace: DocumentWorkspace
-    @Environment(\.dismiss) private var dismiss
-    @State private var stretch: Double
-
-    init(workspace: DocumentWorkspace) {
-        self.workspace = workspace
-        let current = workspace.layoutScope == .document ? workspace.documentSettings.lineSpacing.approximateStretch : 1.5
-        _stretch = State(initialValue: current)
-    }
-
-    private var isPageScope: Bool { workspace.layoutScope == .page }
-    private var currentSpacing: LineSpacing? { isPageScope ? nil : workspace.documentSettings.lineSpacing }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            PickerHeader(
-                title: "Zeilenabstand",
-                subtitle: isPageScope ? "Gilt für die Absätze dieser Seite (bzw. die Auswahl)." : "Gilt für das ganze Dokument."
-            )
-            HStack(spacing: 6) {
-                ForEach(LineSpacing.presets) { preset in
-                    PresetChip(title: preset.title, isSelected: currentSpacing == preset, preview: {
-                        SpacingPreview(stretch: preset.approximateStretch, width: 34)
-                    }) {
-                        dismiss()
-                        workspace.applyLineSpacing(preset)
-                    }
-                }
-            }
-            Divider()
-            Text("Eigener Abstand")
-                .font(.subheadline.weight(.semibold))
-            HStack(alignment: .center, spacing: 14) {
-                SpacingPreview(stretch: stretch, width: 74)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Faktor (1 = einfach)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    HStack(spacing: 8) {
-                        Slider(value: binding, in: LineSpacing.stretchRange, step: 0.05)
-                            .controlSize(.small)
-                        TextField("Faktor", value: binding, format: .number.precision(.fractionLength(0...2)))
-                            .labelsHidden()
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 48)
-                    }
-                }
-            }
-            HStack {
-                Spacer()
-                Button("Übernehmen") {
-                    dismiss()
-                    workspace.applyLineSpacing(LineSpacing(stretch: stretch))
-                }
-                .buttonStyle(.borderedProminent)
-                .keyboardShortcut(.defaultAction)
-            }
-        }
-        .padding(14)
-        .frame(width: 340)
-    }
-
-    private var binding: Binding<Double> {
-        Binding(
-            get: { stretch },
-            set: { stretch = min(max(($0 * 100).rounded() / 100, LineSpacing.stretchRange.lowerBound), LineSpacing.stretchRange.upperBound) }
-        )
     }
 }
 

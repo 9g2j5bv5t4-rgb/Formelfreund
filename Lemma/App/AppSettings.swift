@@ -16,7 +16,6 @@ enum AppSettings {
         static let highlightCurrentLine = "highlightCurrentLine"
         static let preferredEngine = "preferredEngine"
         static let showPreview = "showPreview"
-        static let showFormatBar = "showFormatBar"
     }
 
     enum Defaults {
@@ -28,7 +27,6 @@ enum AppSettings {
         static let highlightCurrentLine = true
         static let preferredEngine = EngineKind.tectonic.rawValue
         static let showPreview = true
-        static let showFormatBar = true
     }
 
     /// Standardwerte registrieren, damit `UserDefaults` sie kennt, bevor der Nutzer etwas ändert.
@@ -42,7 +40,6 @@ enum AppSettings {
             Keys.highlightCurrentLine: Defaults.highlightCurrentLine,
             Keys.preferredEngine: Defaults.preferredEngine,
             Keys.showPreview: Defaults.showPreview,
-            Keys.showFormatBar: Defaults.showFormatBar
         ])
     }
 

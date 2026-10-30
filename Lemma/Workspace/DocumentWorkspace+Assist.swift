@@ -43,7 +43,36 @@ enum LayoutScope: String, CaseIterable, Identifiable {
     }
 }
 
+/// Bausteine in freier Grösse, die ein Auswahlfenster brauchen (aus der
+/// Symbolleiste als Popover, aus der Menüleiste als Dialog).
+enum StructureSheet: Identifiable, Hashable {
+    case table
+    case matrix
+    case counted(CountedStructure)
+
+    var id: String {
+        switch self {
+        case .table: return "table"
+        case .matrix: return "matrix"
+        case .counted(let structure): return "counted.\(structure)"
+        }
+    }
+}
+
 extension DocumentWorkspace {
+    // MARK: - Seitenleiste und Dialoge
+
+    /// Blendet die Format-Seitenleiste mit dem gewünschten Register ein.
+    func showInspector(_ tab: InspectorTab) {
+        inspectorTab = tab
+        showsInspector = true
+    }
+
+    /// Öffnet das Auswahlfenster für eine Struktur als Dialog (aus der Menüleiste).
+    func presentStructure(_ structure: StructureSheet) {
+        structureSheet = structure
+    }
+
     // MARK: - Rückmeldungen
 
     /// Zeigt eine kurze Meldung, die nach ein paar Sekunden von selbst verschwindet.

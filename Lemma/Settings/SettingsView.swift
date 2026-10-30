@@ -56,7 +56,6 @@ private struct EditorSettingsView: View {
     @AppStorage(AppSettings.Keys.showLineNumbers) private var showLineNumbers = AppSettings.Defaults.showLineNumbers
     @AppStorage(AppSettings.Keys.autoPairing) private var autoPairing = AppSettings.Defaults.autoPairing
     @AppStorage(AppSettings.Keys.highlightCurrentLine) private var highlightCurrentLine = AppSettings.Defaults.highlightCurrentLine
-    @AppStorage(AppSettings.Keys.showFormatBar) private var showFormatBar = AppSettings.Defaults.showFormatBar
 
     var body: some View {
         Form {
@@ -69,7 +68,6 @@ private struct EditorSettingsView: View {
                 }
                 Toggle("Zeilennummern anzeigen", isOn: $showLineNumbers)
                 Toggle("Aktuelle Zeile hervorheben", isOn: $highlightCurrentLine)
-                Toggle("Multifunktionsleiste über Editor und Vorschau", isOn: $showFormatBar)
             }
             Section {
                 Toggle("Klammern und $ automatisch schliessen", isOn: $autoPairing)
