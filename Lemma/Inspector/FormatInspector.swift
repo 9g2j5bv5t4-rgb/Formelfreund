@@ -223,7 +223,7 @@ struct TextInspector: View {
                     .fixedSize()
                 }
                 Button("Auskommentieren ein/aus") { workspace.toggleComment() }
-                    .help("Zeilen mit % auskommentieren oder wieder aktivieren (⌘/)")
+                    .help("Zeilen mit % auskommentieren oder wieder aktivieren (⌘K)")
                 Button("Suchen und Ersetzen …") { workspace.showFindBar() }
             }
         }

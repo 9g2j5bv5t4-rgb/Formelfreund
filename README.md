@@ -90,7 +90,7 @@ lässt sich schnell und automatisch testen (`swift test`) und bleibt
 | ⌘B / ⌘I / ⌘U | Fett / Kursiv / Unterstrichen |
 | ⌥⌘0 … ⌥⌘4 | Text / Überschrift 1–4 |
 | ⌘] / ⌘[ | Einrücken / Ausrücken |
-| ⌘/ | Auskommentieren ein/aus |
+| ⌘K | Auskommentieren ein/aus |
 | ⌥⌘↑ / ⌥⌘↓ | Zeilen nach oben / unten verschieben |
 | ⌥⌘A | Block auswählen (mehrmals drücken = grösserer Block) |
 | ⇧⌘M | Formel abgesetzt ↔ im Text |

@@ -112,7 +112,7 @@ struct DocumentToolbar: CustomizableToolbarContent {
             } label: {
                 Label("Kommentar", systemImage: "percent")
             }
-            .help("Zeilen auskommentieren oder wieder aktivieren (⌘/)")
+            .help("Zeilen auskommentieren oder wieder aktivieren (⌘K)")
         }
 
     }

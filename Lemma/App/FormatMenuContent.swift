@@ -81,7 +81,9 @@ struct FormatMenuContent: View {
                 .keyboardShortcut(.downArrow, modifiers: [.command, .option])
         }
         Button("Auskommentieren ein/aus") { workspace?.toggleComment() }
-            .keyboardShortcut("/", modifiers: .command)
+            // ⌘K (K wie Kommentar): ⌘/ braucht auf deutschen und Schweizer Tastaturen
+            // die Umschalttaste (⌘⇧7) und wird dann von macOS nicht erkannt.
+            .keyboardShortcut("k", modifiers: .command)
 
         Divider()
 
