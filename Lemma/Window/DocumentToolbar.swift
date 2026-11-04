@@ -16,16 +16,11 @@ enum InsertCommands {
 
 /// Symbolleiste des Dokumentfensters – wie in Pages und Keynote.
 ///
-/// - Einfügen (Formel, Tabelle, Matrix, Bild, Liste, Bausteine). Diese Knöpfe
-///   lassen sich über „Darstellung → Symbolleiste anpassen“ ändern; Fett,
-///   Kursiv, Suchen u. a. stehen dort zusätzlich zur Wahl.
+/// - Mitte: Einfügen (Formel, Tabelle, Matrix, Bild, Liste, Bausteine).
+///   Diese Knöpfe lassen sich über „Darstellung → Symbolleiste anpassen“
+///   ändern; Fett, Kursiv, Suchen u. a. stehen dort zusätzlich zur Wahl.
 /// - Rechts, immer sichtbar: Status, Kompilieren, Vorschau, Format-Seitenleiste.
 /// Jeder Knopf hat einen Befehl in der Menüleiste.
-///
-/// Keine zentrierten Knöpfe (`.principal`): macOS gleicht anpassbare
-/// Symbolleisten zwischen allen Fenstern ab, und mit zentrierten Knöpfen stürzte
-/// AppKit beim Öffnen eines zweiten Dokuments ab (NSToolbar fügte Knöpfe an einer
-/// Stelle ein, die es im anderen Fenster nicht gab).
 struct DocumentToolbar: CustomizableToolbarContent {
     let workspace: DocumentWorkspace
 
@@ -35,10 +30,10 @@ struct DocumentToolbar: CustomizableToolbarContent {
         trailingItems
     }
 
-    /// Einfügen.
+    /// Mitte: Einfügen.
     @ToolbarContentBuilder
     private var insertItems: some CustomizableToolbarContent {
-        ToolbarItem(id: "insert.formula", placement: .automatic) {
+        ToolbarItem(id: "insert.formula", placement: .principal) {
             Menu {
                 FormulaMenuItems(workspace: workspace)
             } label: {
@@ -46,17 +41,17 @@ struct DocumentToolbar: CustomizableToolbarContent {
             }
             .help("Formel einfügen")
         }
-        ToolbarItem(id: "insert.table", placement: .automatic) {
+        ToolbarItem(id: "insert.table", placement: .principal) {
             ToolbarPopoverButton(title: "Tabelle", systemImage: "tablecells", help: "Tabelle in beliebiger Grösse einfügen") {
                 TablePicker(workspace: workspace)
             }
         }
-        ToolbarItem(id: "insert.matrix", placement: .automatic) {
+        ToolbarItem(id: "insert.matrix", placement: .principal) {
             ToolbarPopoverButton(title: "Matrix", systemImage: "square.grid.3x3", help: "Matrix oder Determinante in beliebiger Grösse einfügen") {
                 MatrixPicker(workspace: workspace)
             }
         }
-        ToolbarItem(id: "insert.image", placement: .automatic) {
+        ToolbarItem(id: "insert.image", placement: .principal) {
             Button {
                 workspace.insertImageFromFile()
             } label: {
@@ -64,7 +59,7 @@ struct DocumentToolbar: CustomizableToolbarContent {
             }
             .help("Bild aus einer Datei einfügen")
         }
-        ToolbarItem(id: "insert.list", placement: .automatic) {
+        ToolbarItem(id: "insert.list", placement: .principal) {
             Menu {
                 ListMenuItems(workspace: workspace)
             } label: {
@@ -72,7 +67,7 @@ struct DocumentToolbar: CustomizableToolbarContent {
             }
             .help("Aufzählung oder nummerierte Liste einfügen")
         }
-        ToolbarItem(id: "insert.blocks", placement: .automatic) {
+        ToolbarItem(id: "insert.blocks", placement: .principal) {
             Menu {
                 InsertMenuItems(workspace: workspace)
             } label: {
@@ -86,16 +81,16 @@ struct DocumentToolbar: CustomizableToolbarContent {
     /// Zur Auswahl beim Anpassen der Symbolleiste.
     @ToolbarContentBuilder
     private var optionalItems: some CustomizableToolbarContent {
-        ToolbarItem(id: "format.bold", placement: .automatic, showsByDefault: false) {
+        ToolbarItem(id: "format.bold", placement: .principal, showsByDefault: false) {
             styleToggle(.bold)
         }
-        ToolbarItem(id: "format.italic", placement: .automatic, showsByDefault: false) {
+        ToolbarItem(id: "format.italic", placement: .principal, showsByDefault: false) {
             styleToggle(.italic)
         }
-        ToolbarItem(id: "format.underline", placement: .automatic, showsByDefault: false) {
+        ToolbarItem(id: "format.underline", placement: .principal, showsByDefault: false) {
             styleToggle(.underline)
         }
-        ToolbarItem(id: "insert.symbols", placement: .automatic, showsByDefault: false) {
+        ToolbarItem(id: "insert.symbols", placement: .principal, showsByDefault: false) {
             Button {
                 workspace.showInspector(.formula)
             } label: {
@@ -103,7 +98,7 @@ struct DocumentToolbar: CustomizableToolbarContent {
             }
             .help("Griechische Buchstaben, Vergleiche, Pfeile, Mengen …")
         }
-        ToolbarItem(id: "edit.find", placement: .automatic, showsByDefault: false) {
+        ToolbarItem(id: "edit.find", placement: .principal, showsByDefault: false) {
             Button {
                 workspace.showFindBar()
             } label: {
@@ -111,7 +106,7 @@ struct DocumentToolbar: CustomizableToolbarContent {
             }
             .help("Suchen und Ersetzen (⌘F)")
         }
-        ToolbarItem(id: "edit.comment", placement: .automatic, showsByDefault: false) {
+        ToolbarItem(id: "edit.comment", placement: .principal, showsByDefault: false) {
             Button {
                 workspace.toggleComment()
             } label: {
