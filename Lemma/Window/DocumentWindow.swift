@@ -39,7 +39,8 @@ struct DocumentWindow: View {
             }
         }
         .animation(.spring(duration: 0.35), value: workspace.notice)
-        .toolbar {
+        // Anpassbare Symbolleiste wie in Pages (Darstellung → Symbolleiste anpassen).
+        .toolbar(id: "lemma.document") {
             DocumentToolbar(workspace: workspace)
         }
         .toolbarRole(.editor)

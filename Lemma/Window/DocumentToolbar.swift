@@ -16,43 +16,63 @@ enum InsertCommands {
 
 /// Symbolleiste des Dokumentfensters – wie in Pages und Keynote.
 ///
-/// - Mitte: Einfügen (Formel, Tabelle, Matrix, Bild, Liste, Bausteine).
-/// - Rechts: Status, Kompilieren, Vorschau, Format-Seitenleiste.
+/// - Einfügen (Formel, Tabelle, Matrix, Bild, Liste, Bausteine). Diese Knöpfe
+///   lassen sich über „Darstellung → Symbolleiste anpassen“ ändern; Fett,
+///   Kursiv, Suchen u. a. stehen dort zusätzlich zur Wahl.
+/// - Rechts, immer sichtbar: Status, Kompilieren, Vorschau, Format-Seitenleiste.
 /// Jeder Knopf hat einen Befehl in der Menüleiste.
 ///
-/// Bewusst *nicht* anpassbar (`.toolbar(id:)`): macOS gleicht anpassbare
-/// Symbolleisten zwischen allen Fenstern ab, und beim Öffnen eines zweiten
-/// Dokuments stürzte AppKit dabei ab (NSToolbar fügte Knöpfe an einer Stelle
-/// ein, die es im anderen Fenster nicht gab).
-struct DocumentToolbar: ToolbarContent {
+/// Keine zentrierten Knöpfe (`.principal`): macOS gleicht anpassbare
+/// Symbolleisten zwischen allen Fenstern ab, und mit zentrierten Knöpfen stürzte
+/// AppKit beim Öffnen eines zweiten Dokuments ab (NSToolbar fügte Knöpfe an einer
+/// Stelle ein, die es im anderen Fenster nicht gab).
+struct DocumentToolbar: CustomizableToolbarContent {
     let workspace: DocumentWorkspace
 
-    var body: some ToolbarContent {
-        ToolbarItemGroup(placement: .principal) {
+    var body: some CustomizableToolbarContent {
+        insertItems
+        optionalItems
+        trailingItems
+    }
+
+    /// Einfügen.
+    @ToolbarContentBuilder
+    private var insertItems: some CustomizableToolbarContent {
+        ToolbarItem(id: "insert.formula", placement: .automatic) {
             Menu {
                 FormulaMenuItems(workspace: workspace)
             } label: {
                 Label("Formel", systemImage: "function")
             }
             .help("Formel einfügen")
+        }
+        ToolbarItem(id: "insert.table", placement: .automatic) {
             ToolbarPopoverButton(title: "Tabelle", systemImage: "tablecells", help: "Tabelle in beliebiger Grösse einfügen") {
                 TablePicker(workspace: workspace)
             }
+        }
+        ToolbarItem(id: "insert.matrix", placement: .automatic) {
             ToolbarPopoverButton(title: "Matrix", systemImage: "square.grid.3x3", help: "Matrix oder Determinante in beliebiger Grösse einfügen") {
                 MatrixPicker(workspace: workspace)
             }
+        }
+        ToolbarItem(id: "insert.image", placement: .automatic) {
             Button {
                 workspace.insertImageFromFile()
             } label: {
                 Label("Bild", systemImage: "photo.badge.plus")
             }
             .help("Bild aus einer Datei einfügen")
+        }
+        ToolbarItem(id: "insert.list", placement: .automatic) {
             Menu {
                 ListMenuItems(workspace: workspace)
             } label: {
                 Label("Liste", systemImage: "list.bullet")
             }
             .help("Aufzählung oder nummerierte Liste einfügen")
+        }
+        ToolbarItem(id: "insert.blocks", placement: .automatic) {
             Menu {
                 InsertMenuItems(workspace: workspace)
             } label: {
@@ -61,17 +81,62 @@ struct DocumentToolbar: ToolbarContent {
             .help("Überschriften, Sätze, Verweise, Seitenumbruch und mehr")
         }
 
-        ToolbarItem(placement: .status) {
-            CompileStatusView(workspace: workspace)
+    }
+
+    /// Zur Auswahl beim Anpassen der Symbolleiste.
+    @ToolbarContentBuilder
+    private var optionalItems: some CustomizableToolbarContent {
+        ToolbarItem(id: "format.bold", placement: .automatic, showsByDefault: false) {
+            styleToggle(.bold)
+        }
+        ToolbarItem(id: "format.italic", placement: .automatic, showsByDefault: false) {
+            styleToggle(.italic)
+        }
+        ToolbarItem(id: "format.underline", placement: .automatic, showsByDefault: false) {
+            styleToggle(.underline)
+        }
+        ToolbarItem(id: "insert.symbols", placement: .automatic, showsByDefault: false) {
+            Button {
+                workspace.showInspector(.formula)
+            } label: {
+                Label("Zeichen", systemImage: "character")
+            }
+            .help("Griechische Buchstaben, Vergleiche, Pfeile, Mengen …")
+        }
+        ToolbarItem(id: "edit.find", placement: .automatic, showsByDefault: false) {
+            Button {
+                workspace.showFindBar()
+            } label: {
+                Label("Suchen", systemImage: "magnifyingglass")
+            }
+            .help("Suchen und Ersetzen (⌘F)")
+        }
+        ToolbarItem(id: "edit.comment", placement: .automatic, showsByDefault: false) {
+            Button {
+                workspace.toggleComment()
+            } label: {
+                Label("Kommentar", systemImage: "percent")
+            }
+            .help("Zeilen auskommentieren oder wieder aktivieren (⌘/)")
         }
 
-        ToolbarItemGroup(placement: .primaryAction) {
+    }
+
+    /// Rechts, immer sichtbar: Status, Kompilieren, Ansicht.
+    @ToolbarContentBuilder
+    private var trailingItems: some CustomizableToolbarContent {
+        ToolbarItem(id: "status", placement: .primaryAction) {
+            CompileStatusView(workspace: workspace)
+        }
+        ToolbarItem(id: "compile", placement: .primaryAction) {
             Button {
                 workspace.compile()
             } label: {
                 Label("Kompilieren", systemImage: "play.fill")
             }
             .help("Dokument kompilieren (⌘↩)")
+        }
+        ToolbarItem(id: "view.preview", placement: .primaryAction) {
             Toggle(isOn: Binding(
                 get: { workspace.showsPreview },
                 set: { workspace.showsPreview = $0 }
@@ -79,6 +144,8 @@ struct DocumentToolbar: ToolbarContent {
                 Label("Vorschau", systemImage: "doc.richtext")
             }
             .help("PDF-Vorschau ein- oder ausblenden (⌥⌘P)")
+        }
+        ToolbarItem(id: "view.format", placement: .primaryAction) {
             Toggle(isOn: Binding(
                 get: { workspace.showsInspector },
                 set: { workspace.showsInspector = $0 }
@@ -87,6 +154,16 @@ struct DocumentToolbar: ToolbarContent {
             }
             .help("Format-Seitenleiste: Text, Formeln und Layout (⌥⌘I)")
         }
+    }
+
+    private func styleToggle(_ style: InlineStyle) -> some View {
+        Toggle(isOn: Binding(
+            get: { workspace.formatState.inline.styles.contains(style) },
+            set: { _ in workspace.toggle(style) }
+        )) {
+            Label(style.title, systemImage: style.symbol)
+        }
+        .help(style.title)
     }
 }
 

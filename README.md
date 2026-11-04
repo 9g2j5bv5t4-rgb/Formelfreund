@@ -104,7 +104,8 @@ Pages und Keynote. Alles wird als normales LaTeX geschrieben, die Datei bleibt
 mit Overleaf und TeXShop kompatibel. Jeder Befehl steht auch in der Menüleiste.
 
 - **Symbolleiste:** Formel, Tabelle, Matrix, Bild, Liste und Bausteine zum
-  Einfügen; rechts Status, Kompilieren, Vorschau und Format.
+  Einfügen; rechts Status, Kompilieren, Vorschau und Format. Anpassbar über
+  „Darstellung → Symbolleiste anpassen“ (dort auch Fett, Kursiv, Suchen …).
 - **Format-Seitenleiste** (⌥⌘I), drei Register:
   - *Text:* Fett/Kursiv/Unterstrichen, Schriftstil, Grösse, Farbe,
     Ausrichtung, Listen, Einzug, Block-Werkzeuge (auswählen, umwandeln,
