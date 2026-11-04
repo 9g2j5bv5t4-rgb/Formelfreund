@@ -67,6 +67,8 @@ final class DocumentWorkspace {
     private var previewVisible = UserDefaults.standard.bool(forKey: AppSettings.Keys.showPreview)
     /// Protokoll-Fenster sichtbar?
     var isShowingLog = false
+    /// Fenster „Symbolleiste anpassen“ offen?
+    var isCustomizingToolbar = false
     /// Inspektor (rechte Seitenleiste mit den Dokument-Einstellungen) sichtbar?
     var showsInspector = false
     /// Kurze Rückmeldung unten im Fenster („Gespeichert“ …), siehe `show(_:)`.

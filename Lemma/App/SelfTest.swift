@@ -147,6 +147,16 @@ enum SelfTest {
         let after = NSApp.windows.filter { $0.isVisible && $0.toolbar != nil }.count
         log("Zweites Fenster: vorher \(before), nachher \(after) Dokumentfenster")
         if after <= before { problems.append("Zweites Dokument öffnete kein Fenster") }
+        // Symbolleiste anpassen, während beide Fenster offen sind: alle Knöpfe,
+        // nur zwei, keiner, dann wieder Standard.
+        let layouts: [[DocumentToolbarButton]] = [DocumentToolbarButton.allCases, [.table, .formula], [], DocumentToolbarButton.standard]
+        for (index, buttons) in layouts.enumerated() {
+            UserDefaults.standard.set(DocumentToolbarLayout.value(for: buttons), forKey: DocumentToolbarLayout.storageKey)
+            try? await Task.sleep(for: .seconds(0.8))
+            if index == 0 { snapshot("symbolleiste-alle", in: directory) }
+        }
+        UserDefaults.standard.removeObject(forKey: DocumentToolbarLayout.storageKey)
+        log("Symbolleiste mit zwei Fenstern angepasst")
         // Wieder schliessen und das erste Fenster nach vorne holen.
         if let second = NSDocumentController.shared.documents.first(where: { $0.fileURL?.lastPathComponent == "Zweites.tex" }) {
             second.close()

@@ -86,6 +86,20 @@ struct AppCommands: Commands {
             .disabled(workspace == nil)
         }
 
+        // Eigene Anpassung statt der von macOS (Begründung in ToolbarCustomization.swift).
+        CommandGroup(replacing: .toolbar) {
+            Button("Symbolleiste ein-/ausblenden") {
+                NSApp.sendAction(#selector(NSWindow.toggleToolbarShown(_:)), to: nil, from: nil)
+            }
+            .keyboardShortcut("t", modifiers: [.command, .option])
+            .disabled(workspace == nil)
+
+            Button("Symbolleiste anpassen …") {
+                workspace?.isCustomizingToolbar = true
+            }
+            .disabled(workspace == nil)
+        }
+
         CommandGroup(after: .sidebar) {
             Button(workspace?.showsInspector == true ? "Format-Seitenleiste ausblenden" : "Format-Seitenleiste einblenden") {
                 workspace?.showsInspector.toggle()

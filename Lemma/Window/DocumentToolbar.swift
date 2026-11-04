@@ -16,49 +16,22 @@ enum InsertCommands {
 
 /// Symbolleiste des Dokumentfensters – wie in Pages und Keynote.
 ///
-/// - Mitte: Einfügen (Formel, Tabelle, Matrix, Bild, Liste, Bausteine).
+/// - Mitte: frei wählbare Knöpfe, ab Werk Formel, Tabelle, Matrix, Bild, Liste
+///   und Bausteine. Anpassbar über „Darstellung → Symbolleiste anpassen …“ oder
+///   einen Rechtsklick (siehe `ToolbarCustomization.swift`).
 /// - Rechts: Status, Kompilieren, Vorschau, Format-Seitenleiste.
 /// Jeder Knopf hat einen Befehl in der Menüleiste.
 ///
-/// Bewusst *nicht* anpassbar (`.toolbar(id:)`): macOS gleicht anpassbare
-/// Symbolleisten zwischen allen Fenstern ab, und beim Öffnen eines zweiten
-/// Dokuments stürzte AppKit dabei ab (NSToolbar fügte Knöpfe an einer Stelle
-/// ein, die es im anderen Fenster nicht gab).
+/// Für macOS ist die Leiste bewusst fest (kein `.toolbar(id:)`): Die eingebaute
+/// Anpassung gleicht die Leisten aller Fenster ab, und dabei stürzte AppKit beim
+/// Öffnen eines zweiten Dokuments ab. Die Elemente hier sind in jedem Fenster
+/// dieselben und ändern sich nie, nur der Inhalt der Knopfreihe in der Mitte.
 struct DocumentToolbar: ToolbarContent {
     let workspace: DocumentWorkspace
 
     var body: some ToolbarContent {
-        ToolbarItemGroup(placement: .principal) {
-            Menu {
-                FormulaMenuItems(workspace: workspace)
-            } label: {
-                Label("Formel", systemImage: "function")
-            }
-            .help("Formel einfügen")
-            ToolbarPopoverButton(title: "Tabelle", systemImage: "tablecells", help: "Tabelle in beliebiger Grösse einfügen") {
-                TablePicker(workspace: workspace)
-            }
-            ToolbarPopoverButton(title: "Matrix", systemImage: "square.grid.3x3", help: "Matrix oder Determinante in beliebiger Grösse einfügen") {
-                MatrixPicker(workspace: workspace)
-            }
-            Button {
-                workspace.insertImageFromFile()
-            } label: {
-                Label("Bild", systemImage: "photo.badge.plus")
-            }
-            .help("Bild aus einer Datei einfügen")
-            Menu {
-                ListMenuItems(workspace: workspace)
-            } label: {
-                Label("Liste", systemImage: "list.bullet")
-            }
-            .help("Aufzählung oder nummerierte Liste einfügen")
-            Menu {
-                InsertMenuItems(workspace: workspace)
-            } label: {
-                Label("Bausteine", systemImage: "square.stack.3d.up")
-            }
-            .help("Überschriften, Sätze, Verweise, Seitenumbruch und mehr")
+        ToolbarItem(placement: .principal) {
+            DocumentToolbarButtonBar(workspace: workspace)
         }
 
         ToolbarItem(placement: .status) {

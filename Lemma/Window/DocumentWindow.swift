@@ -47,6 +47,9 @@ struct DocumentWindow: View {
         .sheet(isPresented: $workspace.isShowingLog) {
             LogView(log: workspace.lastLog ?? "")
         }
+        .sheet(isPresented: $workspace.isCustomizingToolbar) {
+            ToolbarCustomizationSheet()
+        }
         // Bausteine in freier Grösse aus der Menüleiste (Tabelle …, Matrix … usw.).
         .sheet(item: $workspace.structureSheet) { structure in
             StructurePickerView(structure: structure, workspace: workspace)

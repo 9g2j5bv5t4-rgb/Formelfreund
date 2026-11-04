@@ -95,7 +95,8 @@ lässt sich schnell und automatisch testen (`swift test`) und bleibt
 | ⌥⌘A | Block auswählen (mehrmals drücken = grösserer Block) |
 | ⇧⌘M | Formel abgesetzt ↔ im Text |
 | Tab / ⇧Tab | Nächster / vorheriger Platzhalter • |
-| ⌥⌘I | Inspektor (Schrift und Seite des Dokuments) |
+| ⌥⌘I | Format-Seitenleiste ein-/ausblenden |
+| ⌥⌘T | Symbolleiste ein-/ausblenden |
 
 ## Symbolleiste, Format-Seitenleiste und Bausteine
 
@@ -104,7 +105,10 @@ Pages und Keynote. Alles wird als normales LaTeX geschrieben, die Datei bleibt
 mit Overleaf und TeXShop kompatibel. Jeder Befehl steht auch in der Menüleiste.
 
 - **Symbolleiste:** Formel, Tabelle, Matrix, Bild, Liste und Bausteine zum
-  Einfügen; rechts Status, Kompilieren, Vorschau und Format.
+  Einfügen; rechts Status, Kompilieren, Vorschau und Format. Die Knöpfe in der
+  Mitte sind frei wählbar und sortierbar: „Darstellung → Symbolleiste anpassen …“
+  oder Rechtsklick auf die Knöpfe (zur Wahl stehen auch Fett, Kursiv, Zeichen,
+  Suchen, Kommentar, PDF exportieren …).
 - **Format-Seitenleiste** (⌥⌘I), drei Register:
   - *Text:* Fett/Kursiv/Unterstrichen, Schriftstil, Grösse, Farbe,
     Ausrichtung, Listen, Einzug, Block-Werkzeuge (auswählen, umwandeln,
