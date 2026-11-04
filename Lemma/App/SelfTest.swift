@@ -77,6 +77,10 @@ enum SelfTest {
         await repeatAction("Gemischt", times: 90) { actions.randomElement()!() }
         await waitUntilFinished(workspace, timeout: 120)
 
+        // Zweites Dokument öffnen, während das erste offen ist – stürzte einmal in
+        // der Symbolleiste ab (anpassbare Leisten werden zwischen Fenstern abgeglichen).
+        await openSecondDocument(in: directory)
+
         // 3. Kleines Fenster wie auf einem 13-Zoll-Bildschirm (macOS hält die Mindestgrösse ein).
         documentWindow?.setContentSize(NSSize(width: 700, height: 500))
         try? await Task.sleep(for: .seconds(0.5))
@@ -124,6 +128,31 @@ enum SelfTest {
         // Zurück auf Seitenbreite für die weiteren Tests.
         pdfView.autoScales = true
         try? await Task.sleep(for: .milliseconds(300))
+    }
+
+    private static func openSecondDocument(in directory: URL) async {
+        let url = directory.appendingPathComponent("Zweites.tex")
+        let text = "\\documentclass{article}\n\\begin{document}\nZweites Dokument.\n\\end{document}\n"
+        do {
+            try text.write(to: url, atomically: true, encoding: .utf8)
+        } catch {
+            problems.append("Zweites Dokument nicht angelegt: \(error.localizedDescription)")
+            return
+        }
+        let before = NSApp.windows.filter { $0.isVisible && $0.toolbar != nil }.count
+        NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, error in
+            if let error { write("Zweites Dokument: Fehler \(error.localizedDescription)", to: url.deletingLastPathComponent().appendingPathComponent("selftest.log")) }
+        }
+        try? await Task.sleep(for: .seconds(4))
+        let after = NSApp.windows.filter { $0.isVisible && $0.toolbar != nil }.count
+        log("Zweites Fenster: vorher \(before), nachher \(after) Dokumentfenster")
+        if after <= before { problems.append("Zweites Dokument öffnete kein Fenster") }
+        // Wieder schliessen und das erste Fenster nach vorne holen.
+        if let second = NSDocumentController.shared.documents.first(where: { $0.fileURL?.lastPathComponent == "Zweites.tex" }) {
+            second.close()
+        }
+        try? await Task.sleep(for: .seconds(1))
+        documentWindow?.makeKeyAndOrderFront(nil)
     }
 
     // MARK: - Hilfen

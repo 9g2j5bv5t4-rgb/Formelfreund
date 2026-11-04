@@ -109,24 +109,6 @@ final class DocumentSplitViewController: NSSplitViewController {
         )
     }
 
-    override func viewDidAppear() {
-        super.viewDidAppear()
-        showToolbarLabelsOnce()
-    }
-
-    /// Beim allerersten Start zeigt die Symbolleiste Symbol *und* Text (wie Pages und
-    /// Keynote). Danach gilt, was der Nutzer per Rechtsklick auf die Leiste wählt.
-    private func showToolbarLabelsOnce() {
-        let key = "toolbarLabelsShownOnce"
-        guard !UserDefaults.standard.bool(forKey: key) else { return }
-        // Die Symbolleiste von SwiftUI kommt erst kurz nach dem Fenster.
-        Task { @MainActor [weak self] in
-            guard let toolbar = self?.view.window?.toolbar else { return }
-            toolbar.displayMode = .iconAndLabel
-            UserDefaults.standard.set(true, forKey: key)
-        }
-    }
-
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) wird nicht unterstützt")
