@@ -56,6 +56,10 @@ private struct EditorSettingsView: View {
     @AppStorage(AppSettings.Keys.showLineNumbers) private var showLineNumbers = AppSettings.Defaults.showLineNumbers
     @AppStorage(AppSettings.Keys.autoPairing) private var autoPairing = AppSettings.Defaults.autoPairing
     @AppStorage(AppSettings.Keys.highlightCurrentLine) private var highlightCurrentLine = AppSettings.Defaults.highlightCurrentLine
+    @AppStorage(AppSettings.Keys.autoCompletion) private var autoCompletion = AppSettings.Defaults.autoCompletion
+    @AppStorage(AppSettings.Keys.spellChecking) private var spellChecking = AppSettings.Defaults.spellChecking
+    @AppStorage(AppSettings.Keys.mathPreview) private var mathPreview = AppSettings.Defaults.mathPreview
+    @AppStorage(AppSettings.Keys.showWordCount) private var showWordCount = AppSettings.Defaults.showWordCount
 
     var body: some View {
         Form {
@@ -72,7 +76,16 @@ private struct EditorSettingsView: View {
             Section {
                 Toggle("Klammern und $ automatisch schliessen", isOn: $autoPairing)
             } footer: {
-                Text("Ergänzt beim Tippen von { das passende }, bei $ das schliessende $ und nach \\begin{…} das zugehörige \\end{…}. Rückt neue Zeilen ein und setzt Aufzählungen mit \\item fort.")
+                Text("Ergänzt beim Tippen von {, ( und [ die schliessende Klammer, bei $ das zweite $ und nach \\begin{…} das zugehörige \\end{…}. Rückt neue Zeilen ein und setzt Aufzählungen mit \\item fort.")
+                    .foregroundStyle(.secondary)
+            }
+            Section("Schreibhilfen") {
+                Toggle("Vorschläge beim Tippen", isOn: $autoCompletion)
+                Toggle("Rechtschreibung prüfen", isOn: $spellChecking)
+                Toggle("Formelvorschau", isOn: $mathPreview)
+                Toggle("Wortanzahl anzeigen", isOn: $showWordCount)
+            } footer: {
+                Text("Vorschläge erscheinen nach \\ und einem Buchstaben – auch auf Deutsch: \\bruch findet \\frac. esc zeigt sie jederzeit. Die Rechtschreibprüfung übergeht Befehle, Formeln und Kommentare. Die Formelvorschau zeigt die Formel am Cursor schon beim Tippen.")
                     .foregroundStyle(.secondary)
             }
         }

@@ -9,6 +9,12 @@ struct TextAnalysis: Sendable {
     /// Seiten- und Schrifteinstellungen aus der Präambel.
     var settings: DocumentSettings
     var headingScheme: HeadingScheme
+    /// Fliesstext (für Rechtschreibprüfung und Wortzählung).
+    var proseRanges: [Range<Int>]
+    /// Wörter, Zeichen und Formeln im Inhalt des Dokuments.
+    var wordCount: WordCount
+    /// Was sich einklappen lässt.
+    var folds: [FoldingRegion]
     var length: Int
 }
 
@@ -95,12 +101,16 @@ final class SyntaxHighlighter {
         let tokenized = LaTeXTokenizer.tokenize(buffer)
         let lines = LineIndex(buffer)
         let outline = DocumentOutline.parse(buffer, tokenized: tokenized, lines: lines)
+        let prose = ProseScanner.proseRanges(in: buffer, tokenized: tokenized)
         return TextAnalysis(
             tokenized: tokenized,
             lines: lines,
             outline: outline,
             settings: PreambleEditor.settings(in: buffer),
             headingScheme: HeadingScheme.detect(in: buffer),
+            proseRanges: prose,
+            wordCount: WordCounter.count(in: buffer, prose: prose, tokenized: tokenized),
+            folds: FoldingRegions.compute(in: buffer, tokenized: tokenized, lines: lines, outline: outline),
             length: buffer.count
         )
     }

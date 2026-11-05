@@ -1,3 +1,4 @@
+import LaTeXKit
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -62,17 +63,5 @@ nonisolated final class TeXDocument: ReferenceFileDocument, @unchecked Sendable 
     }
 
     /// Inhalt eines neuen, leeren Dokuments: das Nötigste für ein deutsches Dokument mit Mathematik.
-    static let starterText = """
-    \\documentclass[a4paper,11pt]{article}
-    \\usepackage[ngerman]{babel}
-    \\usepackage{amsmath,amssymb,amsthm}
-
-    \\begin{document}
-
-    \\section{Erster Abschnitt}
-    Hier beginnt dein Text. Eine Formel im Fliesstext: $a^2 + b^2 = c^2$.
-
-    \\end{document}
-
-    """
+    static let starterText = DocumentTemplate.blank.text
 }

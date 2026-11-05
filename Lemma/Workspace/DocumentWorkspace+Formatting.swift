@@ -119,34 +119,83 @@ extension DocumentWorkspace {
     /// Wählt ein Bild aus, legt es in den Ordner „Bilder“ neben dem Dokument
     /// und fügt eine Abbildung mit Beschriftung ein.
     func insertImageFromFile() {
-        guard let documentDirectory = fileURL?.deletingLastPathComponent() else {
-            let alert = NSAlert()
-            alert.messageText = "Bitte sichere das Dokument zuerst"
-            alert.informativeText = "Lemma legt Bilder im Ordner „Bilder“ neben deinem Dokument ab. Dafür muss das Dokument einen Speicherort haben (Ablage → Sichern)."
-            alert.runModal()
-            return
-        }
-
+        guard requireDocumentDirectory() != nil else { return }
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.png, .jpeg, .pdf]
         panel.allowsMultipleSelection = false
         panel.message = "Bild für die Abbildung auswählen"
         panel.prompt = "Einfügen"
         guard panel.runModal() == .OK, let source = panel.url else { return }
+        insertImageFiles([source])
+    }
 
-        let relativePath: String
-        do {
-            relativePath = try Self.copyIntoDocumentFolder(source, documentDirectory: documentDirectory)
-        } catch {
-            NSAlert(error: error).runModal()
+    /// Bilder, die in den Editor gezogen oder eingesetzt wurden – an der Cursorposition.
+    func insertImageFiles(_ files: [URL]) {
+        guard let documentDirectory = requireDocumentDirectory() else { return }
+        var copied: [String] = []
+        for file in files {
+            do {
+                copied.append(try Self.copyIntoDocumentFolder(file, documentDirectory: documentDirectory))
+            } catch {
+                NSAlert(error: error).runModal()
+            }
+        }
+        for relativePath in copied {
+            insertFigure(relativePath: relativePath)
+        }
+        if copied.count > 1 {
+            show(Notice("\(copied.count) Bilder eingefügt", symbol: "photo.on.rectangle"))
+        }
+    }
+
+    /// Ein Bild aus der Zwischenablage (z. B. Bildschirmfoto mit ⌃⇧⌘4) als PNG ablegen und einfügen.
+    func insertPastedImage(_ data: Data) {
+        guard let documentDirectory = requireDocumentDirectory() else { return }
+        guard let image = NSBitmapImageRep(data: data), let png = image.representation(using: .png, properties: [:]) else {
+            NSSound.beep()
             return
         }
+        let folder = documentDirectory.appendingPathComponent("Bilder", isDirectory: true)
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd-HHmmss"
+        let baseName = "Bild-" + formatter.string(from: Date())
+        do {
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            var target = folder.appendingPathComponent(baseName).appendingPathExtension("png")
+            var counter = 2
+            while FileManager.default.fileExists(atPath: target.path) {
+                target = folder.appendingPathComponent("\(baseName)-\(counter)").appendingPathExtension("png")
+                counter += 1
+            }
+            try png.write(to: target)
+            insertFigure(relativePath: "Bilder/" + target.lastPathComponent)
+        } catch {
+            NSAlert(error: error).runModal()
+        }
+    }
 
-        let label = (relativePath as NSString).lastPathComponent
+    /// Ordner des Dokuments – oder eine Erklärung, warum erst gespeichert werden muss.
+    private func requireDocumentDirectory() -> URL? {
+        if let directory = fileURL?.deletingLastPathComponent() { return directory }
+        let alert = NSAlert()
+        alert.messageText = "Bitte speichere das Dokument zuerst"
+        alert.informativeText = "Lemma legt Bilder im Ordner „Bilder“ neben deinem Dokument ab. Dafür braucht das Dokument einen Speicherort (Ablage → Speichern)."
+        alert.addButton(withTitle: "Speichern …")
+        alert.addButton(withTitle: "Abbrechen")
+        if alert.runModal() == .alertFirstButtonReturn {
+            saveDocument()
+        }
+        return nil
+    }
+
+    /// Abbildung mit Beschriftung und Marke für ein Bild im Dokumentordner.
+    private func insertFigure(relativePath: String) {
+        let label = (relativePath as NSString).deletingPathExtension
+            .components(separatedBy: "/").last?
             .components(separatedBy: CharacterSet.alphanumerics.inverted)
             .filter { !$0.isEmpty }
             .joined(separator: "-")
-            .lowercased()
+            .lowercased() ?? "bild"
         let snippet = Snippet(
             id: "figure-from-file",
             title: "Bild einfügen",

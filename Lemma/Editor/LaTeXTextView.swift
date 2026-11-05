@@ -31,6 +31,22 @@ final class LaTeXTextView: NSTextView {
     /// ⌘-Klick in den Text: Position im PDF zeigen.
     var onCommandClick: ((Int) -> Void)?
 
+    /// Autovervollständigung (Vorschlagsliste unter dem Cursor).
+    weak var completion: CompletionController?
+    /// Eingeklappte Abschnitte.
+    weak var folding: FoldingController?
+    /// Liegt der Bereich im Fliesstext? Nur dort zeigt die Rechtschreibprüfung Fehler.
+    var proseFilter: ((NSRange) -> Bool)?
+    /// Bilddateien wurden hineingezogen oder eingesetzt (Cursor steht schon an der Stelle).
+    var onImageFiles: (([URL]) -> Void)?
+    /// Ein Bild aus der Zwischenablage (z. B. Bildschirmfoto) wurde eingesetzt.
+    var onImageData: ((Data) -> Void)?
+    /// Das Fenster der Textansicht hat gewechselt (z. B. beim Öffnen).
+    var onWindowChange: ((NSWindow?) -> Void)?
+
+    /// Bildformate, die LaTeX (XeTeX/Tectonic) direkt einbinden kann.
+    static let imageExtensions: Set<String> = ["png", "jpg", "jpeg", "pdf"]
+
     private var lastCurrentLineRect: NSRect = .zero
 
     /// Text als `UTF16Source` für die Regeln in LaTeXKit – ohne Kopie.
@@ -52,17 +68,48 @@ final class LaTeXTextView: NSTextView {
             let range = selectedRange()
             perform(TextEdit(range: range.location..<(range.location + 1), replacement: "", selectionAfter: range.location..<range.location))
         }
-        guard autoPairingEnabled,
-              replacementRange.location == NSNotFound,
-              !hasMarkedText(),
-              selectedRanges.count == 1,
-              let typed = (string as? String) ?? (string as? NSAttributedString)?.string,
-              let edit = EditingAssistant.editForTyping(typed, in: source, selection: selectionRange)
-        else {
+        let typed = (string as? String) ?? (string as? NSAttributedString)?.string
+        if autoPairingEnabled,
+           replacementRange.location == NSNotFound,
+           !hasMarkedText(),
+           selectedRanges.count == 1,
+           let typed,
+           let edit = EditingAssistant.editForTyping(typed, in: source, selection: selectionRange) {
+            perform(edit)
+        } else {
             super.insertText(string, replacementRange: replacementRange)
-            return
         }
-        perform(edit)
+        if !hasMarkedText() {
+            completion?.textDidChange(typed: typed ?? "")
+        }
+    }
+
+    // MARK: - Vorschlagsliste
+
+    /// Bei offener Vorschlagsliste gehören ↑ ↓ ↩ ⇥ esc der Liste.
+    override func doCommand(by selector: Selector) {
+        if completion?.handle(selector) == true { return }
+        super.doCommand(by: selector)
+    }
+
+    /// esc bzw. ⌥esc (Standard von macOS): Vorschläge zeigen.
+    override func complete(_ sender: Any?) {
+        if let completion {
+            completion.showExplicitly()
+        } else {
+            super.complete(sender)
+        }
+    }
+
+    override func resignFirstResponder() -> Bool {
+        let resigned = super.resignFirstResponder()
+        if resigned { completion?.hide() }
+        return resigned
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        onWindowChange?(window)
     }
 
     override func insertNewline(_ sender: Any?) {
@@ -112,6 +159,7 @@ final class LaTeXTextView: NSTextView {
         } else {
             super.deleteBackward(sender)
         }
+        completion?.textDidChange(typed: nil)
     }
 
     /// Führt eine berechnete Änderung so aus, dass Rückgängig (⌘Z) funktioniert.
@@ -133,6 +181,13 @@ final class LaTeXTextView: NSTextView {
     // MARK: - Maus
 
     override func mouseDown(with event: NSEvent) {
+        completion?.hide()
+        // Klick auf „⋯“: eingeklappten Bereich wieder aufklappen.
+        if let folding, let fold = folding.fold(atMarker: convert(event.locationInWindow, from: nil)) {
+            folding.unfold(fold)
+            setSelectedRange(NSRange(location: fold.lowerBound, length: 0))
+            return
+        }
         if event.modifierFlags.contains(.command), let onCommandClick {
             let point = convert(event.locationInWindow, from: nil)
             let index = characterIndexForInsertion(at: point)
@@ -179,6 +234,88 @@ final class LaTeXTextView: NSTextView {
                 lineRect.fill(using: .sourceOver)
             }
         }
+
+        // Eingeklappte Bereiche: Kapsel „⋯“.
+        folding?.drawMarkers(in: rect)
+    }
+
+    // MARK: - Rechtschreibung
+
+    /// Fehler nur im Fliesstext anzeigen – nie in Befehlen, Formeln oder Kommentaren.
+    override func handleTextCheckingResults(
+        _ results: [NSTextCheckingResult],
+        forRange range: NSRange,
+        types checkingTypes: NSTextCheckingTypes,
+        options: [NSSpellChecker.OptionKey: Any],
+        orthography: NSOrthography,
+        wordCount: Int
+    ) {
+        super.handleTextCheckingResults(
+            filteredCheckingResults(results),
+            forRange: range,
+            types: checkingTypes,
+            options: options,
+            orthography: orthography,
+            wordCount: wordCount
+        )
+    }
+
+    func filteredCheckingResults(_ results: [NSTextCheckingResult]) -> [NSTextCheckingResult] {
+        guard let proseFilter else { return results }
+        return results.filter { result in
+            let isSpellingOrGrammar = result.resultType == .spelling || result.resultType == .grammar
+            return !isSpellingOrGrammar || proseFilter(result.range)
+        }
+    }
+
+    // MARK: - Bilder hineinziehen und einsetzen
+
+    override var acceptableDragTypes: [NSPasteboard.PasteboardType] {
+        var types = super.acceptableDragTypes
+        if !types.contains(.fileURL) { types.append(.fileURL) }
+        return types
+    }
+
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        let operation = super.draggingEntered(sender)
+        return Self.imageFiles(on: sender.draggingPasteboard).isEmpty ? operation : .copy
+    }
+
+    override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+        let operation = super.draggingUpdated(sender)
+        return Self.imageFiles(on: sender.draggingPasteboard).isEmpty ? operation : .copy
+    }
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        let files = Self.imageFiles(on: sender.draggingPasteboard)
+        guard !files.isEmpty, let onImageFiles else { return super.performDragOperation(sender) }
+        let point = convert(sender.draggingLocation, from: nil)
+        setSelectedRange(NSRange(location: characterIndexForInsertion(at: point), length: 0))
+        window?.makeFirstResponder(self)
+        onImageFiles(files)
+        return true
+    }
+
+    override func paste(_ sender: Any?) {
+        let pasteboard = NSPasteboard.general
+        let files = Self.imageFiles(on: pasteboard)
+        if !files.isEmpty, let onImageFiles {
+            onImageFiles(files)
+            return
+        }
+        // Bildschirmfoto oder kopiertes Bild ohne Text.
+        if pasteboard.string(forType: .string) == nil, let onImageData,
+           let data = pasteboard.data(forType: .png) ?? pasteboard.data(forType: .tiff) {
+            onImageData(data)
+            return
+        }
+        super.paste(sender)
+    }
+
+    /// Bilddateien auf der Zwischenablage bzw. im gezogenen Inhalt.
+    static func imageFiles(on pasteboard: NSPasteboard) -> [URL] {
+        let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL] ?? []
+        return urls.filter { imageExtensions.contains($0.pathExtension.lowercased()) }
     }
 
     /// Rechteck der (sichtbaren) Zeile, in der der Cursor steht.

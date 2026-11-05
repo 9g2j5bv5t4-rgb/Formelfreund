@@ -12,8 +12,25 @@ struct AppCommands: Commands {
     @FocusedValue(\.workspace) private var workspace
     @AppStorage(AppSettings.Keys.autoCompile) private var autoCompile = AppSettings.Defaults.autoCompile
     @AppStorage(AppSettings.Keys.editorFontSize) private var fontSize = AppSettings.Defaults.editorFontSize
+    @AppStorage(AppSettings.Keys.showWordCount) private var showWordCount = AppSettings.Defaults.showWordCount
+    @AppStorage(AppSettings.Keys.mathPreview) private var mathPreview = AppSettings.Defaults.mathPreview
+    @Environment(\.openWindow) private var openWindow
 
     var body: some Commands {
+        CommandGroup(after: .newItem) {
+            Button("Neu aus Vorlage …") {
+                openWindow(id: TemplateGallery.windowID)
+            }
+            .keyboardShortcut("n", modifiers: [.command, .shift])
+        }
+
+        CommandGroup(after: .textEditing) {
+            Button("Vorschläge zeigen") {
+                workspace?.showCompletions()
+            }
+            .disabled(workspace == nil)
+        }
+
         // „Speichern“ statt „Sichern“ – mit Bestätigung im Fenster.
         CommandGroup(replacing: .saveItem) {
             Button("Speichern") { workspace?.saveDocument() }
@@ -119,6 +136,25 @@ struct AppCommands: Commands {
             }
             .keyboardShortcut("p", modifiers: [.command, .option])
             .disabled(workspace == nil)
+
+            Divider()
+
+            // Wie in Xcode: ⌥⌘← / ⌥⌘→, mit ⇧ für alles.
+            Menu("Einklappen") {
+                Button("Abschnitt einklappen") { workspace?.foldAtCursor() }
+                    .keyboardShortcut(.leftArrow, modifiers: [.command, .option])
+                Button("Abschnitt aufklappen") { workspace?.unfoldAtCursor() }
+                    .keyboardShortcut(.rightArrow, modifiers: [.command, .option])
+                Divider()
+                Button("Alle einklappen") { workspace?.foldAll() }
+                    .keyboardShortcut(.leftArrow, modifiers: [.command, .option, .shift])
+                Button("Alle aufklappen") { workspace?.unfoldAll() }
+                    .keyboardShortcut(.rightArrow, modifiers: [.command, .option, .shift])
+            }
+            .disabled(workspace == nil)
+
+            Toggle("Wortanzahl zeigen", isOn: $showWordCount)
+            Toggle("Formelvorschau beim Tippen", isOn: $mathPreview)
 
             Divider()
 

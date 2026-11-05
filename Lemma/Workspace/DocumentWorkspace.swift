@@ -79,6 +79,10 @@ final class DocumentWorkspace {
     var inspectorTab: InspectorTab = .text
     /// Offener Dialog für einen Baustein in freier Grösse (aus der Menüleiste).
     var structureSheet: StructureSheet?
+    /// Wörter, Zeichen und Formeln im Inhalt des Dokuments.
+    private(set) var wordCount = WordCount()
+    /// Dasselbe für die Auswahl (oder `nil`, wenn nichts ausgewählt ist).
+    var selectionWordCount: WordCount?
     /// Erklärung und Behebung zu jeder Meldung des letzten Laufs (nach `CompileIssue.id`).
     private(set) var issueAdvice: [String: IssueAdvice] = [:]
     /// Zustand der PDF-Vorschau für die Bedienleiste (Zoom, Seite).
@@ -153,6 +157,18 @@ final class DocumentWorkspace {
         if settings != documentSettings { documentSettings = settings }
         if scheme != headingScheme { headingScheme = scheme }
     }
+
+    func update(wordCount newCount: WordCount) {
+        if newCount != wordCount { wordCount = newCount }
+    }
+
+    // MARK: - Einklappen und Vorschläge (Menü „Darstellung“ bzw. „Bearbeiten“)
+
+    func foldAtCursor() { editor?.foldAtCursor() }
+    func unfoldAtCursor() { editor?.unfoldAtCursor() }
+    func foldAll() { editor?.foldAll() }
+    func unfoldAll() { editor?.unfoldAll() }
+    func showCompletions() { editor?.showCompletions() }
 
     // MARK: - Kompilieren
 

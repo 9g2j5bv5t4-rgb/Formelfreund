@@ -16,6 +16,10 @@ enum AppSettings {
         static let highlightCurrentLine = "highlightCurrentLine"
         static let preferredEngine = "preferredEngine"
         static let showPreview = "showPreview"
+        static let autoCompletion = "autoCompletion"
+        static let spellChecking = "spellChecking"
+        static let mathPreview = "mathPreview"
+        static let showWordCount = "showWordCount"
     }
 
     enum Defaults {
@@ -27,6 +31,10 @@ enum AppSettings {
         static let highlightCurrentLine = true
         static let preferredEngine = EngineKind.tectonic.rawValue
         static let showPreview = true
+        static let autoCompletion = true
+        static let spellChecking = true
+        static let mathPreview = true
+        static let showWordCount = true
     }
 
     /// Standardwerte registrieren, damit `UserDefaults` sie kennt, bevor der Nutzer etwas ändert.
@@ -40,6 +48,10 @@ enum AppSettings {
             Keys.highlightCurrentLine: Defaults.highlightCurrentLine,
             Keys.preferredEngine: Defaults.preferredEngine,
             Keys.showPreview: Defaults.showPreview,
+            Keys.autoCompletion: Defaults.autoCompletion,
+            Keys.spellChecking: Defaults.spellChecking,
+            Keys.mathPreview: Defaults.mathPreview,
+            Keys.showWordCount: Defaults.showWordCount,
         ])
     }
 

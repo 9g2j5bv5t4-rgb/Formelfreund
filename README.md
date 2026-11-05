@@ -97,6 +97,9 @@ lässt sich schnell und automatisch testen (`swift test`) und bleibt
 | Tab / ⇧Tab | Nächster / vorheriger Platzhalter • |
 | ⌥⌘I | Format-Seitenleiste ein-/ausblenden |
 | ⌥⌘T | Symbolleiste ein-/ausblenden |
+| esc | Vorschläge zeigen (↑ ↓ wählen, ↩ oder ⇥ einfügen) |
+| ⌥⌘← / ⌥⌘→ | Abschnitt einklappen / aufklappen (mit ⇧: alle) |
+| ⇧⌘N | Neu aus Vorlage |
 
 ## Symbolleiste, Format-Seitenleiste und Bausteine
 
@@ -125,10 +128,29 @@ mit Overleaf und TeXShop kompatibel. Jeder Befehl steht auch in der Menüleiste.
   Cursor, Tabellen nicht in Tabellen, Überschriften nicht in Listen.
 - **Fehlerhilfe:** Fehler werden über dem Editor auf Deutsch erklärt, mit
   Lösungsvorschlag und – wo möglich – „Beheben“ (Paket laden, Tippfehler …).
+- **Vorschläge beim Tippen:** Nach `\` und einem Buchstaben erscheinen passende
+  Befehle mit deutscher Erklärung – auch über deutsche Begriffe (`\bruch` findet
+  `\frac`, `\wurzel` findet `\sqrt`). Nach `\begin{` folgen Umgebungen (samt
+  `\end{…}`), nach `\ref{` die eigenen Marken, nach `\cite{` die Quellen aus
+  `\bibitem` und `.bib`-Dateien, nach `\usepackage{` die Pakete.
+- **Klammern schliessen:** `{`, `(`, `[`, `$`, `\[` und `\left(` bekommen ihr
+  Gegenstück, `\begin{…}` das passende `\end{…}`; der Cursor steht dazwischen.
+- **Rechtschreibung:** geprüft wird nur der Fliesstext – Befehle, Formeln,
+  Kommentare und technische Angaben wie `\label{…}` werden nie angestrichen.
+- **Einklappen:** Dreiecke neben den Zeilennummern klappen Präambel, Abschnitte
+  und mehrzeilige Umgebungen ein; „⋯“ klappt wieder auf.
+- **Formelvorschau:** Steht der Cursor in einer Formel, schwebt sie fertig
+  gesetzt darüber (MathJax, ohne Internet) – mit eigenen Befehlen aus der Präambel.
+- **Wortanzahl** unten rechts, bei einer Auswahl auch für die Auswahl.
+- **Bilder** in den Editor ziehen oder einsetzen (auch Bildschirmfotos): Lemma
+  legt sie im Ordner „Bilder“ ab und fügt eine Abbildung mit Beschriftung ein.
+- **Vorlagen** (⇧⌘N): Übungsblatt, Mitschrift, Zusammenfassung,
+  Versuchsprotokoll, Seminararbeit, Präsentation.
 - **Speichern** (⌘S) und PDF-Export bestätigen sich mit einer kurzen Meldung.
 - Fehlende Pakete (z. B. `xcolor` für Farben) ergänzt Lemma automatisch.
 
 ## Lizenzen
 
 Tectonic (MIT-Lizenz) wird zur Laufzeit von GitHub geladen und über seine
-SHA-256-Prüfsumme verifiziert.
+SHA-256-Prüfsumme verifiziert. Die Formelvorschau verwendet MathJax 3.2.2
+(Apache-Lizenz 2.0), enthalten in `Lemma/Resources/MathPreview.html`.

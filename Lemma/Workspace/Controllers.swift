@@ -33,6 +33,16 @@ protocol EditorControlling: AnyObject {
     var window: NSWindow? { get }
     /// Zeigt die Suchleiste über dem Text (wie ⌘F).
     func showFindBar()
+
+    /// Innersten Abschnitt bzw. die Umgebung am Cursor einklappen.
+    func foldAtCursor()
+    /// Eingeklappten Bereich in der Zeile des Cursors aufklappen.
+    func unfoldAtCursor()
+    /// Präambel und alle Abschnitte einklappen.
+    func foldAll()
+    func unfoldAll()
+    /// Vorschlagsliste zeigen (wie esc im Editor).
+    func showCompletions()
 }
 
 /// Was das Dokumentfenster von der PDF-Vorschau braucht.

@@ -12,6 +12,10 @@ struct EditorPane: View {
     @AppStorage(AppSettings.Keys.showLineNumbers) private var showLineNumbers = AppSettings.Defaults.showLineNumbers
     @AppStorage(AppSettings.Keys.autoPairing) private var autoPairing = AppSettings.Defaults.autoPairing
     @AppStorage(AppSettings.Keys.highlightCurrentLine) private var highlightCurrentLine = AppSettings.Defaults.highlightCurrentLine
+    @AppStorage(AppSettings.Keys.autoCompletion) private var autoCompletion = AppSettings.Defaults.autoCompletion
+    @AppStorage(AppSettings.Keys.spellChecking) private var spellChecking = AppSettings.Defaults.spellChecking
+    @AppStorage(AppSettings.Keys.mathPreview) private var mathPreview = AppSettings.Defaults.mathPreview
+    @AppStorage(AppSettings.Keys.showWordCount) private var showWordCount = AppSettings.Defaults.showWordCount
 
     var body: some View {
         VStack(spacing: 0) {
@@ -30,8 +34,18 @@ struct EditorPane: View {
                 fontSize: CGFloat(fontSize),
                 showLineNumbers: showLineNumbers,
                 autoPairing: autoPairing,
-                highlightCurrentLine: highlightCurrentLine
+                highlightCurrentLine: highlightCurrentLine,
+                autoCompletion: autoCompletion,
+                spellChecking: spellChecking,
+                mathPreview: mathPreview
             )
+            .overlay(alignment: .bottomTrailing) {
+                if showWordCount {
+                    WordCountBadge(workspace: workspace)
+                        .padding(.trailing, 18)
+                        .padding(.bottom, 12)
+                }
+            }
         }
         .animation(.easeInOut(duration: 0.2), value: workspace.errors.first?.id)
     }
@@ -101,5 +115,78 @@ struct IssueBar: View {
     private var helpText: String {
         guard let advice else { return "Zur Fehlerstelle springen" }
         return "\(advice.explanation)\n\(advice.suggestion)\n\nLaTeX meldet: \(issue.message)"
+    }
+}
+
+/// Wortanzahl unten rechts im Editor – wie in Pages. Ein Klick zeigt Details.
+struct WordCountBadge: View {
+    let workspace: DocumentWorkspace
+    @State private var isShowingDetails = false
+
+    var body: some View {
+        Button {
+            isShowingDetails.toggle()
+        } label: {
+            Text(summary)
+                .font(.callout)
+                .monospacedDigit()
+                .padding(.horizontal, 12)
+                .padding(.vertical, 5)
+                .contentTransition(.numericText())
+        }
+        .buttonStyle(.plain)
+        .glassEffect(.regular, in: Capsule())
+        .help("Wörter im Text – ohne Befehle, Formeln und Kommentare")
+        .popover(isPresented: $isShowingDetails, arrowEdge: .top) {
+            WordCountDetails(total: workspace.wordCount, selection: workspace.selectionWordCount)
+        }
+        .accessibilityLabel(summary)
+    }
+
+    private var summary: String {
+        let total = workspace.wordCount.words
+        if let selection = workspace.selectionWordCount {
+            return "\(selection.words.formatted()) von \(total.formatted()) \(total == 1 ? "Wort" : "Wörtern")"
+        }
+        return "\(total.formatted()) \(total == 1 ? "Wort" : "Wörter")"
+    }
+}
+
+private struct WordCountDetails: View {
+    let total: WordCount
+    let selection: WordCount?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 6) {
+                GridRow {
+                    Text("")
+                    if selection != nil {
+                        Text("Auswahl").foregroundStyle(.secondary).gridColumnAlignment(.trailing)
+                    }
+                    Text("Dokument").foregroundStyle(.secondary).gridColumnAlignment(.trailing)
+                }
+                .font(.caption)
+                row("Wörter", \.words)
+                row("Zeichen ohne Leerzeichen", \.characters)
+                row("Formeln", \.formulas)
+            }
+            Text("Gezählt wird der Text zwischen \\begin{document} und \\end{document} – ohne Befehle, Formeln und Kommentare.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .frame(width: 300)
+    }
+
+    private func row(_ title: String, _ value: KeyPath<WordCount, Int>) -> some View {
+        GridRow {
+            Text(title)
+            if let selection {
+                Text(selection[keyPath: value].formatted()).monospacedDigit()
+            }
+            Text(total[keyPath: value].formatted()).monospacedDigit()
+        }
     }
 }
