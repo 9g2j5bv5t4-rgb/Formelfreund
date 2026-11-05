@@ -1,7 +1,8 @@
 import Foundation
 
-/// Kleine Tipp-Hilfen im Editor: automatisches Schliessen von Klammern,
-/// `$…$`, `\[…\]`, `\begin…\end`, Einrücken und Listen fortsetzen.
+/// Kleine Tipp-Hilfen im Editor: automatisches Schliessen von Klammern
+/// (`{}`, `()`, `[]`, `\left( … \right)`), `$…$`, `\[…\]`, `\begin…\end`,
+/// Einrücken und Listen fortsetzen.
 ///
 /// Jede Funktion schaut sich Text und Cursor an und liefert entweder eine
 /// `TextEdit` (der Editor führt sie aus) oder `nil` (normales Tippen).
@@ -30,7 +31,13 @@ public enum EditingAssistant {
         case TeXChar.dollar:
             return typedDollar(text, selection)
         case TeXChar.bracketOpen, TeXChar.parenOpen:
-            return typedMathBracket(typedUnit, text, selection)
+            // `\[` und `\(` öffnen eine Formel, alles andere ist eine gewöhnliche Klammer.
+            if text.isEscaped(at: cursor) {
+                return typedMathBracket(typedUnit, text, selection)
+            }
+            return typedOpeningPair(typedUnit, text, selection)
+        case TeXChar.bracketClose, TeXChar.parenClose:
+            return typedClosingPair(typedUnit, text, selection)
         default:
             return nil
         }
@@ -82,6 +89,40 @@ public enum EditingAssistant {
         }
 
         return overtype ? .moveCursor(to: cursor + 1) : nil
+    }
+
+    /// `(` → `(|)`, `[` → `[|]`, mit Auswahl → `(Auswahl)`, nach `\left` → `\left( | \right)`.
+    static func typedOpeningPair<S: UTF16Source>(_ open: UInt16, _ text: S, _ selection: Range<Int>) -> TextEdit? {
+        let cursor = selection.lowerBound
+        let (openString, closeString) = open == TeXChar.parenOpen ? ("(", ")") : ("[", "]")
+        if !selection.isEmpty {
+            let inner = text.string(in: selection)
+            return TextEdit(
+                range: selection,
+                replacement: openString + inner + closeString,
+                selectionAfter: (cursor + 1)..<(cursor + 1 + selection.count)
+            )
+        }
+        if cursor >= 5, text.matches("\\left", at: cursor - 5), !text.isEscaped(at: cursor - 5) {
+            let replacement = openString + "  \\right" + closeString
+            return TextEdit(range: cursor..<cursor, replacement: replacement, selectionAfter: (cursor + 2)..<(cursor + 2))
+        }
+        // Vor einem Wort nicht ergänzen – dort wird meist eine vorhandene Stelle eingeklammert.
+        if let next = text.unit(at: cursor), TeXChar.isAlphanumeric(next) || next == TeXChar.backslash {
+            return nil
+        }
+        return TextEdit(range: cursor..<cursor, replacement: openString + closeString, selectionAfter: (cursor + 1)..<(cursor + 1))
+    }
+
+    /// `)` bzw. `]` überschreibt eine schon vorhandene schliessende Klammer, wenn
+    /// die Klammern im Absatz sonst aufgehen.
+    static func typedClosingPair<S: UTF16Source>(_ close: UInt16, _ text: S, _ selection: Range<Int>) -> TextEdit? {
+        guard selection.isEmpty else { return nil }
+        let cursor = selection.lowerBound
+        guard text.unit(at: cursor) == close, !text.isEscaped(at: cursor) else { return nil }
+        let open = close == TeXChar.parenClose ? TeXChar.parenOpen : TeXChar.bracketOpen
+        guard balanceInParagraph(text, around: cursor, open: open, close: close) <= 0 else { return nil }
+        return .moveCursor(to: cursor + 1)
     }
 
     /// `$` öffnet und schliesst Formeln im Fliesstext.
@@ -165,6 +206,10 @@ public enum EditingAssistant {
             || (previous == TeXChar.parenOpen && text.matches("\\)", at: cursor)) {
             return TextEdit(range: (cursor - 2)..<(cursor + 2), replacement: "", selectionAfter: (cursor - 2)..<(cursor - 2))
         }
+        if (previous == TeXChar.parenOpen && next == TeXChar.parenClose) || (previous == TeXChar.bracketOpen && next == TeXChar.bracketClose),
+           !text.isEscaped(at: cursor - 1) {
+            return TextEdit(range: (cursor - 1)..<(cursor + 1), replacement: "", selectionAfter: (cursor - 1)..<(cursor - 1))
+        }
         if previous == TeXChar.braceOpen, next == TeXChar.braceClose, !text.isEscaped(at: cursor - 1) {
             return TextEdit(range: (cursor - 1)..<(cursor + 1), replacement: "", selectionAfter: (cursor - 1)..<(cursor - 1))
         }
@@ -211,6 +256,11 @@ public enum EditingAssistant {
     /// Anzahl öffnender minus schliessender geschweifter Klammern im Absatz.
     /// > 0 heisst: Es fehlt noch mindestens eine `}`.
     static func braceBalanceInParagraph<S: UTF16Source>(_ text: S, around position: Int) -> Int {
+        balanceInParagraph(text, around: position, open: TeXChar.braceOpen, close: TeXChar.braceClose)
+    }
+
+    /// Öffnende minus schliessende Klammern einer Art im Absatz (maskierte wie `\(` zählen nicht).
+    static func balanceInParagraph<S: UTF16Source>(_ text: S, around position: Int, open: UInt16, close: UInt16) -> Int {
         let start = paragraphStart(text, before: position)
         let end = paragraphEnd(text, after: position)
         var balance = 0
@@ -221,8 +271,8 @@ public enum EditingAssistant {
                 i = text.lineEnd(after: i)
                 continue
             }
-            if u == TeXChar.braceOpen && !text.isEscaped(at: i) { balance += 1 }
-            if u == TeXChar.braceClose && !text.isEscaped(at: i) { balance -= 1 }
+            if u == open && !text.isEscaped(at: i) { balance += 1 }
+            if u == close && !text.isEscaped(at: i) { balance -= 1 }
             i += 1
         }
         return balance

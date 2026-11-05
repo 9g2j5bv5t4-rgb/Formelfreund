@@ -64,8 +64,8 @@ struct AutoPairTests {
     @Test func displayBrackets() {
         #expect(type("[", into: "\\|") == "\\[|\\]")
         #expect(type("(", into: "\\|") == "\\(|\\)")
-        #expect(type("[", into: "\\\\|") == "\\\\[|")              // \\[2mm] ist kein \[
-        #expect(type("[", into: "|") == "[|")
+        #expect(type("[", into: "\\\\|") == "\\\\[|]")             // \\[2mm] ist kein \[
+        #expect(type("[", into: "|") == "[|]")
     }
 
     @Test func beginEnd() {
@@ -85,6 +85,36 @@ struct AutoPairTests {
         let edit = EditingAssistant.editForTyping("$", in: Array(text.utf16), selection: 2..<3)
         #expect(edit?.replacement == "$b$")
         #expect(edit?.selectionAfter == 3..<4)
+    }
+}
+
+@Suite("Runde und eckige Klammern")
+struct ParenthesisTests {
+    @Test func pairsAndOvertypes() {
+        #expect(type("(", into: "f|") == "f(|)")
+        #expect(type("[", into: "\\documentclass|") == "\\documentclass[|]")
+        #expect(type(")", into: "f(x|)") == "f(x)|")
+        #expect(type("]", into: "[a|]") == "[a]|")
+    }
+
+    @Test func noPairBeforeWordsAndNoOvertypeWhenUnbalanced() {
+        #expect(type("(", into: "|x") == "(|x")
+        #expect(type(")", into: "((a|)") == "((a)|)")
+        // `\]` beendet eine Formel und wird nicht überschrieben.
+        #expect(type("]", into: "\\[ x |\\]") == "\\[ x ]|\\]")
+    }
+
+    @Test func leftRight() {
+        #expect(type("(", into: "$\\left|$") == "$\\left( | \\right)$")
+        #expect(type("[", into: "$\\left|$") == "$\\left[ | \\right]$")
+    }
+
+    @Test func wrapsSelectionAndDeletesEmptyPair() {
+        let text = Array("a b c".utf16)
+        let edit = EditingAssistant.editForTyping("(", in: text, selection: 2..<3)
+        #expect(edit?.replacement == "(b)")
+        #expect(deleteBackward(in: "f(|)") == "f|")
+        #expect(deleteBackward(in: "[|]") == "|")
     }
 }
 
