@@ -224,6 +224,12 @@ struct TextInspector: View {
                 }
                 Button("Auskommentieren ein/aus") { workspace.toggleComment() }
                     .help("Zeilen mit % auskommentieren oder wieder aktivieren (⌘K)")
+                Button {
+                    workspace.formatSource()
+                } label: {
+                    Label("Quelltext formatieren", systemImage: "wand.and.stars")
+                }
+                .help("Einrücken, Tabellen und Rechnungen an & ausrichten, überflüssige Leerzeilen entfernen (⌥⌘L)")
                 Button("Suchen und Ersetzen …") { workspace.showFindBar() }
             }
         }

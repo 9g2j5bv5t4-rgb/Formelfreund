@@ -87,15 +87,15 @@ extension DocumentTemplate {
         \begin{enumerate}[label=(\alph*)]
           \item Zeige, dass $\displaystyle\lim_{n \to \infty} \frac{1}{n} = 0$ gilt.
 
-          \textbf{Lösung:} Sei $\varepsilon > 0$. Wähle $N \in \mathbb{N}$ mit $N > \frac{1}{\varepsilon}$.
-          Dann gilt für alle $n \geq N$:
-          \[
-            \left| \frac{1}{n} - 0 \right| = \frac{1}{n} \leq \frac{1}{N} < \varepsilon.
-          \]
+                \textbf{Lösung:} Sei $\varepsilon > 0$. Wähle $N \in \mathbb{N}$ mit $N > \frac{1}{\varepsilon}$.
+                Dann gilt für alle $n \geq N$:
+                \[
+                  \left| \frac{1}{n} - 0 \right| = \frac{1}{n} \leq \frac{1}{N} < \varepsilon.
+                \]
 
           \item Berechne $\displaystyle\sum_{k=1}^{n} k$.
 
-          \textbf{Lösung:}
+                \textbf{Lösung:}
         \end{enumerate}
 
         \section*{Aufgabe 2}
@@ -205,9 +205,9 @@ extension DocumentTemplate {
 
         \section*{Ableitungsregeln}
         \begin{align*}
-          (f g)' &= f' g + f g' \\
+          (f g)'                      &= f' g + f g' \\
           \left( \frac{f}{g} \right)' &= \frac{f' g - f g'}{g^2} \\
-          (f \circ g)' &= (f' \circ g) \cdot g'
+          (f \circ g)'                &= (f' \circ g) \cdot g'
         \end{align*}
 
         \section*{Wichtige Grenzwerte}
@@ -264,8 +264,8 @@ extension DocumentTemplate {
             \toprule
             Länge $l$ in m & Zeit für 10 Schwingungen in s & $T$ in s \\
             \midrule
-            0{,}50 & 14{,}2 & 1{,}42 \\
-            1{,}00 & 20{,}1 & 2{,}01 \\
+            0{,}50         & 14{,}2                        & 1{,}42 \\
+            1{,}00         & 20{,}1                        & 2{,}01 \\
             \bottomrule
           \end{tabular}
           \caption{Gemessene Schwingungsdauern}

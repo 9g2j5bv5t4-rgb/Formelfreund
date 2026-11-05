@@ -309,6 +309,23 @@ extension DocumentWorkspace {
         }
     }
 
+    /// Quelltext aufräumen (⌥⌘L, wie „Reformat Code“ in IntelliJ): einrücken, an `&`
+    /// ausrichten, Leerzeichen am Zeilenende und doppelte Leerzeilen entfernen.
+    /// Mit Auswahl nur die ausgewählten Zeilen. Am PDF ändert sich nichts.
+    func formatSource() {
+        guard let editor else { return }
+        let hasSelection = !editor.selection.isEmpty
+        guard let edit = LaTeXFormatter.edit(in: editor.source, selection: editor.selection) else {
+            show(Notice(hasSelection ? "Die Auswahl ist schon sauber formatiert" : "Der Quelltext ist schon sauber formatiert", symbol: "checkmark"))
+            editor.focus()
+            return
+        }
+        let changed = performEdit(hasSelection ? "Auswahl formatieren" : "Quelltext formatieren") { _, _ in edit }
+        if changed {
+            show(Notice(hasSelection ? "Auswahl formatiert" : "Quelltext formatiert", symbol: "wand.and.stars", style: .success))
+        }
+    }
+
     func toggleComment() {
         performEdit("Auskommentieren") { source, selection in
             BlockEditor.toggleComment(in: source, selection: selection)

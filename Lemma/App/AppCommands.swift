@@ -80,7 +80,8 @@ struct AppCommands: Commands {
             Button("Protokoll anzeigen") {
                 workspace?.isShowingLog = true
             }
-            .keyboardShortcut("l", modifiers: [.command, .option])
+            // ⌥⌘L gehört „Quelltext formatieren“ (wie in IntelliJ).
+            .keyboardShortcut("l", modifiers: [.command, .shift])
             .disabled(workspace?.lastLog == nil)
         }
 

@@ -85,7 +85,8 @@ lässt sich schnell und automatisch testen (`swift test`) und bleibt
 | ⌘-Klick im PDF | Zur Zeile im Quelltext springen |
 | ⇧⌘E | PDF exportieren |
 | ⌥⌘P | PDF-Vorschau ein-/ausblenden |
-| ⌥⌘L | LaTeX-Protokoll anzeigen |
+| ⇧⌘L | LaTeX-Protokoll anzeigen |
+| ⌥⌘L | Quelltext formatieren (wie in IntelliJ; mit Auswahl nur diese Zeilen) |
 | ⌘+ / ⌘− / ⌘0 | Schrift grösser / kleiner / Standard |
 | ⌘B / ⌘I / ⌘U | Fett / Kursiv / Unterstrichen |
 | ⌥⌘0 … ⌥⌘4 | Text / Überschrift 1–4 |
@@ -146,6 +147,9 @@ mit Overleaf und TeXShop kompatibel. Jeder Befehl steht auch in der Menüleiste.
   legt sie im Ordner „Bilder“ ab und fügt eine Abbildung mit Beschriftung ein.
 - **Vorlagen** (⇧⌘N): Übungsblatt, Mitschrift, Zusammenfassung,
   Versuchsprotokoll, Seminararbeit, Präsentation.
+- **Quelltext formatieren** (⌥⌘L): rückt Umgebungen ein, richtet Tabellen,
+  Matrizen und Rechnungen an den `&` aus, entfernt Leerzeichen am Zeilenende und
+  doppelte Leerzeilen. Am PDF ändert sich nichts; ⌘Z macht es rückgängig.
 - **Speichern** (⌘S) und PDF-Export bestätigen sich mit einer kurzen Meldung.
 - Fehlende Pakete (z. B. `xcolor` für Farben) ergänzt Lemma automatisch.
 

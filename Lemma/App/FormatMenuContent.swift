@@ -84,6 +84,9 @@ struct FormatMenuContent: View {
             // ⌘K (K wie Kommentar): ⌘/ braucht auf deutschen und Schweizer Tastaturen
             // die Umschalttaste (⌘⇧7) und wird dann von macOS nicht erkannt.
             .keyboardShortcut("k", modifiers: .command)
+        // ⌥⌘L wie „Reformat Code“ in IntelliJ.
+        Button("Quelltext formatieren") { workspace?.formatSource() }
+            .keyboardShortcut("l", modifiers: [.command, .option])
 
         Divider()
 

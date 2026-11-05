@@ -15,7 +15,7 @@ import SwiftUI
 /// Ein Knopf, der in der Mitte der Symbolleiste stehen kann.
 enum DocumentToolbarButton: String, CaseIterable, Identifiable {
     case formula, inlineFormula, table, matrix, image, list, blocks, symbols
-    case bold, italic, underline, comment, find
+    case bold, italic, underline, comment, find, reformat
     case showInPDF, exportPDF, log
 
     var id: String { rawValue }
@@ -38,6 +38,7 @@ enum DocumentToolbarButton: String, CaseIterable, Identifiable {
         case .underline: return "Unterstrichen"
         case .comment: return "Kommentar"
         case .find: return "Suchen"
+        case .reformat: return "Formatieren"
         case .showInPDF: return "Im PDF zeigen"
         case .exportPDF: return "PDF exportieren"
         case .log: return "Protokoll"
@@ -59,6 +60,7 @@ enum DocumentToolbarButton: String, CaseIterable, Identifiable {
         case .underline: return InlineStyle.underline.symbol
         case .comment: return "percent"
         case .find: return "magnifyingglass"
+        case .reformat: return "wand.and.stars"
         case .showInPDF: return "doc.text.magnifyingglass"
         case .exportPDF: return "square.and.arrow.up"
         case .log: return "doc.plaintext"
@@ -81,9 +83,10 @@ enum DocumentToolbarButton: String, CaseIterable, Identifiable {
         case .underline: return "Unterstrichen (⌘U)"
         case .comment: return "Zeilen auskommentieren oder wieder aktivieren (⌘K)"
         case .find: return "Suchen und Ersetzen (⌘F)"
+        case .reformat: return "Quelltext sauber einrücken und ausrichten (⌥⌘L)"
         case .showInPDF: return "Stelle am Cursor im PDF zeigen (⇧⌘J)"
         case .exportPDF: return "PDF exportieren (⇧⌘E)"
-        case .log: return "LaTeX-Protokoll anzeigen (⌥⌘L)"
+        case .log: return "LaTeX-Protokoll anzeigen (⇧⌘L)"
         }
     }
 }
@@ -191,6 +194,8 @@ struct DocumentToolbarButtonView: View {
             action { workspace.toggleComment() }
         case .find:
             action { workspace.showFindBar() }
+        case .reformat:
+            action { workspace.formatSource() }
         case .showInPDF:
             action { workspace.showCursorInPDF() }
                 .disabled(!workspace.canSynchronize)
