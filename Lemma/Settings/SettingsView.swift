@@ -79,11 +79,13 @@ private struct EditorSettingsView: View {
                 Text("Ergänzt beim Tippen von {, ( und [ die schliessende Klammer, bei $ das zweite $ und nach \\begin{…} das zugehörige \\end{…}. Rückt neue Zeilen ein und setzt Aufzählungen mit \\item fort.")
                     .foregroundStyle(.secondary)
             }
-            Section("Schreibhilfen") {
+            Section {
                 Toggle("Vorschläge beim Tippen", isOn: $autoCompletion)
                 Toggle("Rechtschreibung prüfen", isOn: $spellChecking)
                 Toggle("Formelvorschau", isOn: $mathPreview)
                 Toggle("Wortanzahl anzeigen", isOn: $showWordCount)
+            } header: {
+                Text("Schreibhilfen")
             } footer: {
                 Text("Vorschläge erscheinen nach \\ und einem Buchstaben – auch auf Deutsch: \\bruch findet \\frac. esc zeigt sie jederzeit. Die Rechtschreibprüfung übergeht Befehle, Formeln und Kommentare. Die Formelvorschau zeigt die Formel am Cursor schon beim Tippen.")
                     .foregroundStyle(.secondary)

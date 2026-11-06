@@ -147,7 +147,10 @@ final class CompletionController {
             hide()
             return
         }
-        let previous = context.map { model.items.indices.contains(model.selectedIndex) ? model.items[model.selectedIndex].id : nil } ?? nil
+        // Bisher gewählter Eintrag (falls die Liste schon offen war).
+        let previous: String? = context != nil && model.items.indices.contains(model.selectedIndex)
+            ? model.items[model.selectedIndex].id
+            : nil
         context = found
         model.items = items
         model.prefix = found.prefix
