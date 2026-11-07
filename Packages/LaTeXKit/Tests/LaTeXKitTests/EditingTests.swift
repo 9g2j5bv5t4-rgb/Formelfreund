@@ -88,6 +88,57 @@ struct AutoPairTests {
     }
 }
 
+/// Tippt Zeichen für Zeichen (mit allen Tipp-Hilfen); „⏎“ steht für die Eingabetaste.
+private func typeSequence(_ keys: String, into textWithCursor: String) -> String {
+    var text = textWithCursor
+    for key in keys {
+        if key == "⏎" {
+            text = newline(in: text) ?? {
+                let cursor = (text as NSString).range(of: "|").location
+                return (text as NSString).replacingCharacters(in: NSRange(location: cursor, length: 0), with: "\n")
+            }()
+        } else {
+            text = type(String(key), into: text)
+        }
+    }
+    return text
+}
+
+@Suite("Umgebungen schliessen beim Tippen")
+struct EnvironmentClosingTests {
+    @Test func returnAfterAutoClosedBraceAddsEnd() {
+        // `{` ergänzt `}` – man tippt den Namen und drückt ↩, ohne `}` selbst zu tippen.
+        #expect(typeSequence("\\begin{forest⏎", into: "|") == "\\begin{forest}\n  |\n\\end{forest}")
+        #expect(typeSequence("\\begin{document⏎", into: "|") == "\\begin{document}\n|\n\\end{document}")
+        #expect(typeSequence("\\begin{itemize⏎", into: "  |") == "  \\begin{itemize}\n    \\item |\n  \\end{itemize}")
+    }
+
+    @Test func typingClosingBraceStillWorks() {
+        #expect(typeSequence("\\begin{forest}", into: "|") == "\\begin{forest}\n  |\n\\end{forest}")
+    }
+
+    @Test func returnAfterCompleteBeginWithArguments() {
+        #expect(newline(in: "\\begin{forest}|") == "\\begin{forest}\n  |\n\\end{forest}")
+        #expect(newline(in: "\\begin{figure}[htbp]|") == "\\begin{figure}[htbp]\n  |\n\\end{figure}")
+        #expect(newline(in: "  \\begin{tabular}{lcr}  |") == "  \\begin{tabular}{lcr}\n    |\n  \\end{tabular}")
+        #expect(newline(in: "\\begin{minipage}{0.5\\textwidth}|") == "\\begin{minipage}{0.5\\textwidth}\n  |\n\\end{minipage}")
+    }
+
+    @Test func noEndWhenAlreadyClosedOrTextFollows() {
+        // \end ist schon da: normale neue Zeile.
+        #expect(newline(in: "\\begin{center}|\nText\n\\end{center}") == nil)
+        #expect(newline(in: "\\begin{center|}\nText\n\\end{center}") == nil)
+        // Text hinter dem Cursor, Kommentar oder anderer Befehl.
+        #expect(newline(in: "\\begin{center}|Text") == nil)
+        #expect(newline(in: "% \\begin{center}|") == nil)
+        #expect(newline(in: "\\section{Titel}|") == nil)
+    }
+
+    @Test func retypingBraceOfExistingBeginAddsNoSecondEnd() {
+        #expect(type("}", into: "\\begin{align|}\na\n\\end{align}") == "\\begin{align}|\na\n\\end{align}")
+    }
+}
+
 @Suite("Runde und eckige Klammern")
 struct ParenthesisTests {
     @Test func pairsAndOvertypes() {

@@ -78,14 +78,8 @@ public enum EditingAssistant {
         let replaced = overtype ? cursor..<(cursor + 1) : cursor..<cursor
 
         if let environment = environmentBeingOpened(text, before: cursor),
-           needsEnd(for: environment, in: text) {
-            let indent = leadingWhitespace(text, lineContaining: cursor)
-            let innerIndent = environment == "document" ? indent : indent + indentUnit
-            let item = listEnvironments.contains(environment) ? "\\item " : ""
-            let firstLine = "}\n" + innerIndent + item
-            let replacement = firstLine + "\n" + indent + "\\end{\(environment)}"
-            let caret = cursor + firstLine.utf16.count
-            return TextEdit(range: replaced, replacement: replacement, selectionAfter: caret..<caret)
+           needsEnd(for: environment, in: text, beginIsComplete: overtype) {
+            return environmentBlock(environment, in: text, at: cursor, replacing: replaced, closingBrace: true)
         }
 
         return overtype ? .moveCursor(to: cursor + 1) : nil
@@ -164,6 +158,9 @@ public enum EditingAssistant {
 
     /// Neue Zeile mit gleicher Einrückung; in Listen wird `\item` fortgesetzt.
     public static func editForNewline<S: UTF16Source>(in text: S, selection: Range<Int>) -> TextEdit? {
+        if selection.isEmpty, let edit = environmentEndForNewline(text, cursor: selection.lowerBound) {
+            return edit
+        }
         let cursor = selection.lowerBound
         let lineStart = text.lineStart(before: cursor)
         let indent = leadingWhitespace(text, lineContaining: cursor)
@@ -190,6 +187,76 @@ public enum EditingAssistant {
         let insertion = "\n" + usableIndent
         let caret = selection.lowerBound + insertion.utf16.count
         return TextEdit(range: selection, replacement: insertion, selectionAfter: caret..<caret)
+    }
+
+    /// ↩ direkt nach `\begin{name}` (auch mit Optionen wie `[htbp]` oder `{lcr}`) bzw. in
+    /// `\begin{name|}`: Leerzeile mit Cursor und darunter `\end{name}` – sofern das `\end`
+    /// noch fehlt. Nach der Zeile darf nur noch Leerraum stehen.
+    static func environmentEndForNewline<S: UTF16Source>(_ text: S, cursor: Int) -> TextEdit? {
+        guard !BracketMatcher.isInComment(text, cursor) else { return nil }
+        let lineEnd = text.lineEnd(after: cursor)
+
+        // Cursor noch im Namen: `\begin{forest|}` oder `\begin{forest|`.
+        if let name = environmentBeingOpened(text, before: cursor) {
+            let hasBrace = text.unit(at: cursor) == TeXChar.braceClose
+            let afterBrace = cursor + (hasBrace ? 1 : 0)
+            guard isBlank(text, afterBrace..<lineEnd),
+                  needsEnd(for: name, in: text, beginIsComplete: hasBrace) else { return nil }
+            return environmentBlock(name, in: text, at: cursor, replacing: cursor..<lineEnd, closingBrace: true)
+        }
+
+        // Cursor hinter `\begin{name}` und eventuellen Argumenten.
+        guard isBlank(text, cursor..<lineEnd) else { return nil }
+        let lineStart = text.lineStart(before: cursor)
+        var begin = cursor - 7
+        while begin >= lineStart, !(text.matches("\\begin{", at: begin) && !text.isEscaped(at: begin)) { begin -= 1 }
+        guard begin >= lineStart else { return nil }
+        let nameStart = begin + 7
+        var nameEnd = nameStart
+        while nameEnd < cursor, text[nameEnd] != TeXChar.braceClose { nameEnd += 1 }
+        guard nameEnd < cursor, nameEnd > nameStart else { return nil }
+        let name = text.string(in: nameStart..<nameEnd)
+        guard name.unicodeScalars.allSatisfy({ CharacterSet.alphanumerics.contains($0) || $0 == "*" }) else { return nil }
+        // Danach nur Argumente wie `[htbp]`, `{lcr}` oder `{0.5\textwidth}`.
+        var position = nameEnd + 1
+        while position < cursor {
+            let u = text[position]
+            if u == TeXChar.space || u == TeXChar.tab {
+                position += 1
+            } else if u == TeXChar.bracketOpen || u == TeXChar.braceOpen,
+                      let end = ProseScanner.groupEnd(text, at: position, open: u, close: u == TeXChar.bracketOpen ? TeXChar.bracketClose : TeXChar.braceClose),
+                      end <= cursor {
+                position = end
+            } else {
+                return nil
+            }
+        }
+        guard needsEnd(for: name, in: text, beginIsComplete: true) else { return nil }
+        // Leerzeichen zwischen `\begin{…}` und dem Cursor fallen weg.
+        var start = cursor
+        while start > nameEnd + 1, text[start - 1] == TeXChar.space || text[start - 1] == TeXChar.tab { start -= 1 }
+        return environmentBlock(name, in: text, at: cursor, replacing: start..<lineEnd, closingBrace: false)
+    }
+
+    /// `}` (falls nötig), neue Zeile mit Cursor (bei Listen mit `\item`) und `\end{name}` darunter.
+    static func environmentBlock<S: UTF16Source>(
+        _ name: String, in text: S, at cursor: Int, replacing range: Range<Int>, closingBrace: Bool
+    ) -> TextEdit {
+        let indent = leadingWhitespace(text, lineContaining: cursor)
+        let innerIndent = name == "document" ? indent : indent + indentUnit
+        let item = listEnvironments.contains(name) ? "\\item " : ""
+        let firstLine = (closingBrace ? "}" : "") + "\n" + innerIndent + item
+        let replacement = firstLine + "\n" + indent + "\\end{\(name)}"
+        let caret = range.lowerBound + firstLine.utf16.count
+        return TextEdit(range: range, replacement: replacement, selectionAfter: caret..<caret)
+    }
+
+    private static func isBlank<S: UTF16Source>(_ text: S, _ range: Range<Int>) -> Bool {
+        guard range.lowerBound < range.upperBound else { return true }
+        for i in range where text[i] != TeXChar.space && text[i] != TeXChar.tab && text[i] != TeXChar.carriageReturn {
+            return false
+        }
+        return true
     }
 
     // MARK: - Rückwärts löschen
@@ -330,8 +397,11 @@ public enum EditingAssistant {
 
     /// Fehlt zu `\begin{name}` noch ein `\end{name}`? Vergleicht die Anzahl
     /// im ganzen Dokument; das gerade getippte `\begin{name` zählt mit.
-    static func needsEnd<S: UTF16Source>(for environment: String, in text: S) -> Bool {
-        let begins = occurrences(of: "\\begin{\(environment)}", in: text) + 1
+    ///
+    /// - Parameter beginIsComplete: Steht das `\begin{name}` schon samt `}` im Text
+    ///   (dann ist es bereits mitgezählt)?
+    static func needsEnd<S: UTF16Source>(for environment: String, in text: S, beginIsComplete: Bool = false) -> Bool {
+        let begins = occurrences(of: "\\begin{\(environment)}", in: text) + (beginIsComplete ? 0 : 1)
         let ends = occurrences(of: "\\end{\(environment)}", in: text)
         return begins > ends
     }

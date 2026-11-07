@@ -224,6 +224,20 @@ struct CompletionInsertTests {
         #expect(try accept(enumerate, in: #"\enum|"#) == "\\begin{enumerate}\n  \\item |\n\\end{enumerate}")
     }
 
+    @Test func returnKeepsTypedEnvironmentName() throws {
+        let (typedList, listText) = context(#"\begin{list|}"#)
+        let list = try #require(typedList)
+        let items = CompletionEngine.suggestions(for: list, symbols: DocumentSymbols.scan(listText))
+        // „liste“ ist ein Suchbegriff von itemize – angeboten wird es, ↩ übernimmt es aber nicht.
+        let itemize = try #require(items.first { $0.name == "itemize" })
+        #expect(!CompletionEngine.returnAccepts(itemize, context: list))
+        let partial = try #require(context(#"\begin{ite|}"#).0)
+        #expect(CompletionEngine.returnAccepts(itemize, context: partial))
+        // Bei Befehlen gilt der deutsche Suchbegriff: \bruch + ↩ ergibt \frac.
+        let bruch = try #require(context(#"\bruch|"#).0)
+        #expect(CompletionEngine.returnAccepts(try item("frac"), context: bruch))
+    }
+
     @Test func alreadyCompleteLetsReturnThrough() throws {
         let context = try #require(context(#"\item|"#).0)
         #expect(CompletionEngine.isAlreadyComplete(try item("item"), context: context))

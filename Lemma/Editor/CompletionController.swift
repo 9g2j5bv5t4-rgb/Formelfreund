@@ -90,8 +90,9 @@ final class CompletionController {
             model.selectedIndex = max(model.selectedIndex - Self.visibleRows, 0)
             return true
         case #selector(NSResponder.insertNewline(_:)):
-            // `\item` schon ganz getippt: ↩ beginnt einfach eine neue Zeile.
-            if CompletionEngine.isAlreadyComplete(model.items[model.selectedIndex], context: context) {
+            // `\item` schon ganz getippt oder `\begin{list}` statt des Vorschlags `itemize`:
+            // ↩ beginnt eine neue Zeile (bei \begin{…} samt passendem \end{…}).
+            if !CompletionEngine.returnAccepts(model.items[model.selectedIndex], context: context) {
                 hide()
                 return false
             }

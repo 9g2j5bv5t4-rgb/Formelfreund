@@ -303,6 +303,19 @@ public enum CompletionEngine {
         return body == "\\" + context.prefix
     }
 
+    /// Soll ↩ diesen Vorschlag übernehmen? Nein, wenn er schon dasteht – und in
+    /// `\begin{…}`, `\ref{…}` usw. auch nicht, wenn er nur über einen Suchbegriff
+    /// passt: Wer `\begin{list}` tippt und ↩ drückt, will `list`, nicht `itemize`.
+    /// (⇥ übernimmt den Vorschlag trotzdem.)
+    public static func returnAccepts(_ item: CompletionItem, context: CompletionContext) -> Bool {
+        if isAlreadyComplete(item, context: context) { return false }
+        if context.kind != .command, !context.prefix.isEmpty,
+           !item.name.lowercased().hasPrefix(context.prefix.lowercased()) {
+            return false
+        }
+        return true
+    }
+
     private static func argumentEdit(_ name: String, _ context: CompletionContext) -> TextEdit {
         let caret: Int
         let replacement: String
