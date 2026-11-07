@@ -136,6 +136,8 @@ mit Overleaf und TeXShop kompatibel. Jeder Befehl steht auch in der Menüleiste.
   `\bibitem` und `.bib`-Dateien, nach `\usepackage{` die Pakete.
 - **Klammern schliessen:** `{`, `(`, `[`, `$`, `\[` und `\left(` bekommen ihr
   Gegenstück, `\begin{…}` das passende `\end{…}`; der Cursor steht dazwischen.
+  ↩ zwischen zwei Klammern (`{|}`, `[|]`, `\[|\]` …) setzt die schliessende
+  Klammer zwei Zeilen tiefer und den Cursor eingerückt in die Leerzeile.
 - **Rechtschreibung:** geprüft wird nur der Fliesstext – Befehle, Formeln,
   Kommentare und technische Angaben wie `\label{…}` werden nie angestrichen.
 - **Einklappen:** Dreiecke neben den Zeilennummern klappen Präambel, Abschnitte

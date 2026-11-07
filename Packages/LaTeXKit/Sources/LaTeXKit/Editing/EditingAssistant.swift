@@ -161,6 +161,9 @@ public enum EditingAssistant {
         if selection.isEmpty, let edit = environmentEndForNewline(text, cursor: selection.lowerBound) {
             return edit
         }
+        if selection.isEmpty, let edit = bracketNewline(text, cursor: selection.lowerBound) {
+            return edit
+        }
         let cursor = selection.lowerBound
         let lineStart = text.lineStart(before: cursor)
         let indent = leadingWhitespace(text, lineContaining: cursor)
@@ -236,6 +239,44 @@ public enum EditingAssistant {
         var start = cursor
         while start > nameEnd + 1, text[start - 1] == TeXChar.space || text[start - 1] == TeXChar.tab { start -= 1 }
         return environmentBlock(name, in: text, at: cursor, replacing: start..<lineEnd, closingBrace: false)
+    }
+
+    /// ↩ zwischen zwei passenden Klammern – `{|}`, `[|]`, `(|)`, `\[|\]`, `\(|\)` –
+    /// setzt die schliessende Klammer zwei Zeilen tiefer und den Cursor eingerückt
+    /// in die Leerzeile dazwischen. Leerzeichen um den Cursor fallen dabei weg.
+    static func bracketNewline<S: UTF16Source>(_ text: S, cursor: Int) -> TextEdit? {
+        guard !BracketMatcher.isInComment(text, cursor) else { return nil }
+        var open = cursor - 1
+        while open >= 0, text[open] == TeXChar.space || text[open] == TeXChar.tab { open -= 1 }
+        var close = cursor
+        while close < text.count, text[close] == TeXChar.space || text[close] == TeXChar.tab { close += 1 }
+        guard open >= 0, close < text.count else { return nil }
+
+        let opener = text[open]
+        let closer = text[close]
+        let isPair: Bool
+        switch opener {
+        case TeXChar.braceOpen:
+            isPair = closer == TeXChar.braceClose && !text.isEscaped(at: open) && !text.isEscaped(at: close)
+        case TeXChar.bracketOpen, TeXChar.parenOpen:
+            let expected = opener == TeXChar.bracketOpen ? TeXChar.bracketClose : TeXChar.parenClose
+            if text.isEscaped(at: open) {
+                // Formel-Klammern `\[ … \]` und `\( … \)`.
+                isPair = closer == TeXChar.backslash && close + 1 < text.count && text[close + 1] == expected
+                    && !text.isEscaped(at: close)
+            } else {
+                isPair = closer == expected && !text.isEscaped(at: close)
+            }
+        default:
+            isPair = false
+        }
+        guard isPair else { return nil }
+
+        let indent = leadingWhitespace(text, lineContaining: cursor)
+        let firstLine = "\n" + indent + indentUnit
+        let replacement = firstLine + "\n" + indent
+        let caret = open + 1 + firstLine.utf16.count
+        return TextEdit(range: (open + 1)..<close, replacement: replacement, selectionAfter: caret..<caret)
     }
 
     /// `}` (falls nötig), neue Zeile mit Cursor (bei Listen mit `\item`) und `\end{name}` darunter.

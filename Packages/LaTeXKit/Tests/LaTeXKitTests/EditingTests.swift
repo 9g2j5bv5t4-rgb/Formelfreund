@@ -139,6 +139,35 @@ struct EnvironmentClosingTests {
     }
 }
 
+@Suite("Eingabetaste zwischen Klammern")
+struct BracketNewlineTests {
+    @Test func opensBlankLineBetweenBrackets() {
+        #expect(newline(in: "\\textbf{|}") == "\\textbf{\n  |\n}")
+        #expect(newline(in: "  f(|)") == "  f(\n    |\n  )")
+        #expect(newline(in: "\\documentclass[|]{article}") == "\\documentclass[\n  |\n]{article}")
+        #expect(newline(in: "{ | }") == "{\n  |\n}")
+    }
+
+    @Test func mathBrackets() {
+        #expect(newline(in: "\\[|\\]") == "\\[\n  |\n\\]")
+        #expect(newline(in: "\\(|\\)") == "\\(\n  |\n\\)")
+    }
+
+    @Test func worksWhileTyping() {
+        // `{` ergänzt `}`, dann ↩.
+        #expect(typeSequence("\\newcommand{\\R}{⏎", into: "|") == "\\newcommand{\\R}{\n  |\n}")
+    }
+
+    @Test func onlyBetweenMatchingBrackets() {
+        #expect(newline(in: "{|x}") == nil)
+        #expect(newline(in: "(|]") == nil)
+        #expect(newline(in: "\\{|\\}") == nil)
+        #expect(newline(in: "% {|}") == nil)
+        // \begin{…} hat Vorrang: dort kommt \end{…}.
+        #expect(newline(in: "\\begin{center|}") == "\\begin{center}\n  |\n\\end{center}")
+    }
+}
+
 @Suite("Runde und eckige Klammern")
 struct ParenthesisTests {
     @Test func pairsAndOvertypes() {
