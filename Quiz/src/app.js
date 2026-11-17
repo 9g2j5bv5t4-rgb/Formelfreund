@@ -46,9 +46,14 @@
     theta: 'θ', pi: 'π', sum: '∑', prod: '∏', infty: '∞', times: '×', circ: '∘', emptyset: '∅', subseteq: '⊆', subset: '⊂', supseteq: '⊇',
     cup: '∪', cap: '∩', models: '⊨', ldots: '…', cdots: '⋯', approx: '≈', leftarrow: '⟵', oplus: '⊕', odot: '⊙', preceq: '⪯', prec: '≺',
     Theta: 'Θ', Omega: 'Ω', langle: '⟨', rangle: '⟩', setminus: '∖', sim: '∼', cong: '≅', pm: '±', lfloor: '⌊', rfloor: '⌋', lceil: '⌈', rceil: '⌉',
-    epsilon: 'ε', varepsilon: 'ε', ell: 'ℓ', delta: 'δ', Delta: 'Δ', tau: 'τ', psi: 'ψ', omega: 'ω', nabla: '∇', partial: '∂', hat: '', quad: ' '
+    epsilon: 'ε', varepsilon: 'ε', ell: 'ℓ', delta: 'δ', Delta: 'Δ', tau: 'τ', psi: 'ψ', omega: 'ω', nabla: '∇', partial: '∂', hat: '', quad: '\u2003',
+    mapsto: '↦', iff: '⟺', implies: '⟹', Longrightarrow: '⟹', lVert: '‖', rVert: '‖', bigcup: '⋃', bigcap: '⋂', leq: '≤', geq: '≥', neq: '≠',
+    rightarrow: '→', leftrightarrow: '↔', subsetneq: '⊊', dots: '…', big: '', Big: '', bigl: '', bigr: '', left: '', right: ''
   };
+  var FUNCS = /^(log|ln|gcd|lcm|deg|cos|sin|max|min|dim|ker|bmod|ord|arccos|rank)$/;
+  var CAL = { A: '𝒜', B: 'ℬ', C: '𝒞', D: '𝒟', E: 'ℰ', F: 'ℱ', G: '𝒢', H: 'ℋ', I: 'ℐ', L: 'ℒ', M: 'ℳ', N: '𝒩', O: '𝒪', P: '𝒫', R: 'ℛ', S: '𝒮', T: '𝒯', U: '𝒰', V: '𝒱', W: '𝒲' };
   function mathHtml(s) {
+    s = s.replace(/\\not\s*\\equiv/g, '≢').replace(/\\not\s*\\mid/g, '∤').replace(/\\not\s*\\in/g, '∉');
     var i = 0, out = '';
     function grp() {
       while (s[i] === ' ') i++;
@@ -76,7 +81,10 @@
         var m = /^\\([a-zA-Z]+)/.exec(s.slice(i));
         if (m) {
           var name = m[1]; i += m[0].length;
-          if (name === 'frac') { var a = grp(), b = grp(); out += '<span class="fr"><span>' + mathHtml(a) + '</span><span>' + mathHtml(b) + '</span></span>'; }
+          if (FUNCS.test(name)) { out += '<span class="mf">' + (name === 'bmod' ? 'mod' : name) + '</span>'; }
+          else if (name === 'mathcal') { var cg = grp(); out += cg.split('').map(function (ch) { return CAL[ch] || esc(ch); }).join(''); }
+          else if (name === 'widehat') { out += '<span class="wh">' + mathHtml(grp()) + '</span>'; }
+          else if (name === 'frac' || name === 'tfrac') { var a = grp(), b = grp(); out += '<span class="fr"><span>' + mathHtml(a) + '</span><span>' + mathHtml(b) + '</span></span>'; }
           else if (name === 'mat' || name === 'vec') {
             var body = grp(), rows = splitTop(body, ';').map(function (r) { return name === 'vec' ? [r] : splitTop(r, ','); });
             var cols = rows.reduce(function (mx, r) { return Math.max(mx, r.length); }, 1);
@@ -93,7 +101,8 @@
           else out += esc('\\' + name);
           continue;
         }
-        out += esc(s[i + 1] || ''); i += 2; continue;
+        var nc = s[i + 1] || '';
+        out += (nc === ',' || nc === ';' || nc === ':') ? '\u2009' : nc === '!' ? '' : esc(nc); i += 2; continue;
       }
       if (c === '_' || c === '^') {
         i++; var g = grp();
@@ -314,7 +323,7 @@
     if (!c) { main.innerHTML = emptyHtml('tap'); bindEnd(); return; }
     var q = BY_ID[c.id];
     var kindLabel = q.k === 'mc' ? '<span class="kind">Mehrfachauswahl</span>' : q.k === 'tf' ? '<span class="kind">Jede Zeile</span>' : '';
-    var html = '<article class="qcard fade-in" aria-labelledby="qt">' + metaHtml(q, kindLabel ? '<span class="sep">·</span>' + kindLabel : '') +
+    var html = '<article class="qcard fade-in" data-q="' + q.id + '" aria-labelledby="qt">' + metaHtml(q, kindLabel ? '<span class="sep">·</span>' + kindLabel : '') +
       '<div class="qtext rich" id="qt">' + fmt(q.q) + '</div>' + codeBlock(q);
     if (q.k === 'sc' || q.k === 'mc') {
       html += '<div class="opts" role="group" aria-label="Antworten">';
@@ -431,7 +440,7 @@
     var c = cur.write, main = $('main');
     if (!c) { main.innerHTML = emptyHtml('write'); return; }
     var q = BY_ID[c.id];
-    var html = '<article class="qcard paper fade-in" aria-labelledby="wt">' + metaHtml(q) +
+    var html = '<article class="qcard paper fade-in" data-q="' + q.id + '" aria-labelledby="wt">' + metaHtml(q) +
       '<div class="task-label">Aufgabe</div><div class="qtext rich" id="wt">' + fmt(q.q) + '</div>' + codeBlock(q);
     if (q.hint) {
       html += c.hint ? '<div class="hint rich"><b>Tipp:</b> ' + fmt(q.hint) + '</div>' : '<div class="actions"><button class="btn btn-plain" id="show-hint">Tipp anzeigen</button></div>';

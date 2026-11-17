@@ -59,7 +59,7 @@ QUIZ.add('ep', [
     e: 'Rekursion braucht immer einen Ausweg ohne den rekursiven Namen, sonst ist die Sprache leer.', m: 'Syntax = Form, Semantik = Bedeutung.', s: 'Folien EProg Kap. 1.4–1.6' },
 
   { id: 'ep1-08', t: 'ep1', d: 3, k: 'sc',
-    q: 'Gegeben sind\n`<A> ⟵ a | <B>`\n`<B> ⟵ [ <A> ]`\nWelche Sprache wird **mit Startregel `<A>`** beschrieben?',
+    q: 'Gegeben sind\n`<A> ⟵ a | <B>`\n`<B> ⟵ [ <A> ]`\nWelche Sprache wird mit der Startregel `<A>` beschrieben?',
     o: ['{ a, ε }', '{ a }', '{ aⁿ | n ≥ 0 }', 'die leere Sprache'],
     a: 0,
     w: { 1: 'Über `<B>` und die nicht gewählte Option entsteht auch ε.', 2: 'Es kommt nie mehr als ein a vor: `<B>` hängt nichts an, es ruft nur wieder `<A>` auf.', 3: 'Es gibt Abbruchmöglichkeiten: `a` direkt oder `<B>` mit leerer Option.' },

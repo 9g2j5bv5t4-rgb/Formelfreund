@@ -149,7 +149,11 @@ pre.code code { background: none; border: 0; padding: 0; font-size: inherit; ove
 .tk-k { color: var(--tk-k); font-weight: 600; } .tk-s { color: var(--tk-s); } .tk-n { color: var(--tk-n); } .tk-c { color: var(--fg-3); font-style: italic; } .tk-t { color: var(--tk-t); }
 
 /* Mathe-Mini-Satz */
-.m { font-family: var(--f-math); font-size: 1.08em; white-space: nowrap; }
+.m { font-family: var(--f-math); font-size: 1.08em; }
+.m sub, .m sup, .fr, .mx, .sq, .wh { white-space: nowrap; }
+.mf { font-family: var(--f-math); font-style: normal; margin-right: 0.15em; }
+.wh { position: relative; display: inline-block; padding-top: 0.25em; }
+.wh::before { content: "^"; position: absolute; left: 0; right: 0; top: -0.2em; text-align: center; font-size: 0.8em; transform: scaleX(2); }
 .m sub, .m sup { font-size: 0.72em; line-height: 0; }
 .fr { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; margin: 0 0.12em; font-size: 0.92em; }
 .fr > span:first-child { border-bottom: 1px solid currentColor; padding: 0 0.15em; }
@@ -261,6 +265,9 @@ pre.code code { background: none; border: 0; padding: 0; font-size: inherit; ove
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 @media (min-width: 720px) {
+  .sl-list:not([hidden]) { display: grid; grid-template-columns: 1fr 1fr; }
+  .sl:nth-child(even) { border-left: 1px solid var(--line); }
+  .sl-foot { grid-column: 1 / -1; }
   .head h1 { font-size: 40px; }
   .qtext { font-size: 19px; }
 }
