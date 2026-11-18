@@ -187,14 +187,6 @@ public enum EditingAssistant {
         guard !indent.isEmpty else { return nil }
         // Nicht mehr Einrückung übernehmen, als vor dem Cursor steht.
         let usableIndent = String(indent.prefix(lineBeforeCursor.count))
-
-        // ↩ in einer Zeile, die nur aus Einrückung besteht: Die verlassene Zeile bleibt
-        // wirklich leer – sonst hängt sich später beim Löschen Text an unsichtbare Leerzeichen.
-        if selection.isEmpty, trimmed.isEmpty, atLineEnd {
-            let insertion = "\n" + usableIndent
-            let caret = lineStart + insertion.utf16.count
-            return TextEdit(range: lineStart..<text.lineEnd(after: cursor), replacement: insertion, selectionAfter: caret..<caret)
-        }
         let insertion = "\n" + usableIndent
         let caret = selection.lowerBound + insertion.utf16.count
         return TextEdit(range: selection, replacement: insertion, selectionAfter: caret..<caret)
@@ -306,51 +298,6 @@ public enum EditingAssistant {
             return false
         }
         return true
-    }
-
-    // MARK: - Leerzeilen löschen
-
-    /// Leerzeilen verschwinden mit einem Tastendruck – auch wenn sie unsichtbare
-    /// Leerzeichen enthalten, und ohne dass sich die Nachbarzeile daran anhängt.
-    ///
-    /// Rückwärts (⌫):
-    /// - In einer Zeile nur aus Leerraum: ganze Zeile weg, Cursor ans Ende der Zeile davor.
-    /// - Am Anfang einer Zeile, über der eine solche Zeile steht: diese weg; die
-    ///   aktuelle Zeile rutscht unverändert hoch.
-    ///
-    /// Vorwärts (fn ⌫) entsprechend: die Zeile selbst bzw. die Leerzeile darunter.
-    public static func editForDeletingBlankLine<S: UTF16Source>(in text: S, selection: Range<Int>, forward: Bool) -> TextEdit? {
-        guard selection.isEmpty else { return nil }
-        let cursor = selection.lowerBound
-        let lineStart = text.lineStart(before: cursor)
-        let lineEnd = text.lineEnd(after: cursor)
-        let lineIsBlank = lineEnd > lineStart && isBlank(text, lineStart..<lineEnd)
-
-        if forward {
-            if lineIsBlank, lineEnd < text.count {
-                return TextEdit(range: lineStart..<(lineEnd + 1), replacement: "", selectionAfter: lineStart..<lineStart)
-            }
-            if cursor == lineEnd, lineEnd < text.count {
-                let nextStart = lineEnd + 1
-                let nextEnd = text.lineEnd(after: nextStart)
-                if nextEnd > nextStart, isBlank(text, nextStart..<nextEnd) {
-                    return TextEdit(range: lineEnd..<nextEnd, replacement: "", selectionAfter: cursor..<cursor)
-                }
-            }
-            return nil
-        }
-
-        if lineIsBlank, lineStart > 0 {
-            return TextEdit(range: (lineStart - 1)..<lineEnd, replacement: "", selectionAfter: (lineStart - 1)..<(lineStart - 1))
-        }
-        if cursor == lineStart, lineStart > 0 {
-            let previousStart = text.lineStart(before: lineStart - 1)
-            let previousEnd = lineStart - 1
-            if previousEnd > previousStart, isBlank(text, previousStart..<previousEnd) {
-                return TextEdit(range: previousStart..<lineStart, replacement: "", selectionAfter: previousStart..<previousStart)
-            }
-        }
-        return nil
     }
 
     // MARK: - Rückwärts löschen

@@ -139,50 +139,6 @@ struct EnvironmentClosingTests {
     }
 }
 
-private func deleteBlankLine(in textWithCursor: String, forward: Bool = false) -> String? {
-    let cursor = (textWithCursor as NSString).range(of: "|").location
-    let text = textWithCursor.replacingOccurrences(of: "|", with: "")
-    guard let edit = EditingAssistant.editForDeletingBlankLine(in: Array(text.utf16), selection: cursor..<cursor, forward: forward) else { return nil }
-    return apply(edit, to: text)
-}
-
-@Suite("Leerzeilen löschen")
-struct BlankLineDeletionTests {
-    @Test func backspaceAtLineStartRemovesBlankLineAbove() {
-        // Die Leerzeile enthält unsichtbare Einrückung; „b“ rutscht trotzdem unverändert hoch.
-        #expect(deleteBlankLine(in: "  a\n    \n|b") == "  a\n|b")
-        #expect(deleteBlankLine(in: "  a\n    \n  |\\section{B}") == nil)
-        #expect(deleteBlankLine(in: "  a\n    \n|  \\section{B}") == "  a\n|  \\section{B}")
-    }
-
-    @Test func backspaceInsideBlankLineRemovesWholeLine() {
-        #expect(deleteBlankLine(in: "a\n    |\nb") == "a|\nb")
-        #expect(deleteBlankLine(in: "a\n  |  \nb") == "a|\nb")
-        #expect(deleteBlankLine(in: "a\n|    \nb") == "a|\nb")
-    }
-
-    @Test func normalCasesStayNormal() {
-        // Echte leere Zeile oder Text: normales Löschen.
-        #expect(deleteBlankLine(in: "a\n\n|b") == nil)
-        #expect(deleteBlankLine(in: "ab|c") == nil)
-        #expect(deleteBlankLine(in: "a\n|b") == nil)
-        #expect(deleteBlankLine(in: "  |") == nil)
-    }
-
-    @Test func forwardDelete() {
-        #expect(deleteBlankLine(in: "a|\n    \nb", forward: true) == "a|\nb")
-        #expect(deleteBlankLine(in: "a\n  |  \nb", forward: true) == "a\n|b")
-        #expect(deleteBlankLine(in: "a|\nb", forward: true) == nil)
-    }
-
-    @Test func returnOnIndentedEmptyLineLeavesItEmpty() {
-        #expect(newline(in: "  a\n  |") == "  a\n\n  |")
-        #expect(newline(in: "  a\n  |  ") == "  a\n\n  |")
-        // Mit Text bleibt alles wie bisher.
-        #expect(newline(in: "  a|") == "  a\n  |")
-    }
-}
-
 @Suite("Eingabetaste zwischen Klammern")
 struct BracketNewlineTests {
     @Test func opensBlankLineBetweenBrackets() {

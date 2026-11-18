@@ -153,25 +153,11 @@ final class LaTeXTextView: NSTextView {
     }
 
     override func deleteBackward(_ sender: Any?) {
-        if selectedRanges.count == 1,
-           let edit = EditingAssistant.editForDeletingBlankLine(in: source, selection: selectionRange, forward: false) {
-            perform(edit)
-        } else if autoPairingEnabled, selectedRanges.count == 1,
-                  let edit = EditingAssistant.editForDeleteBackward(in: source, selection: selectionRange) {
+        if autoPairingEnabled, selectedRanges.count == 1,
+           let edit = EditingAssistant.editForDeleteBackward(in: source, selection: selectionRange) {
             perform(edit)
         } else {
             super.deleteBackward(sender)
-        }
-        completion?.textDidChange(typed: nil)
-    }
-
-    /// fn ⌫: eine Leerzeile (auch mit Leerzeichen) auf einmal löschen.
-    override func deleteForward(_ sender: Any?) {
-        if selectedRanges.count == 1,
-           let edit = EditingAssistant.editForDeletingBlankLine(in: source, selection: selectionRange, forward: true) {
-            perform(edit)
-        } else {
-            super.deleteForward(sender)
         }
         completion?.textDidChange(typed: nil)
     }
