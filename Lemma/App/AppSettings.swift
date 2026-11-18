@@ -20,6 +20,7 @@ enum AppSettings {
         static let spellChecking = "spellChecking"
         static let mathPreview = "mathPreview"
         static let showWordCount = "showWordCount"
+        static let indentWrappedLines = "indentWrappedLines"
     }
 
     enum Defaults {
@@ -35,6 +36,8 @@ enum AppSettings {
         static let spellChecking = true
         static let mathPreview = true
         static let showWordCount = true
+        /// Aus: Der Editor verhält sich beim Tippen wie gewohnt; eingerückt wird mit ⌥⌘L.
+        static let indentWrappedLines = false
     }
 
     /// Standardwerte registrieren, damit `UserDefaults` sie kennt, bevor der Nutzer etwas ändert.
@@ -52,6 +55,7 @@ enum AppSettings {
             Keys.spellChecking: Defaults.spellChecking,
             Keys.mathPreview: Defaults.mathPreview,
             Keys.showWordCount: Defaults.showWordCount,
+            Keys.indentWrappedLines: Defaults.indentWrappedLines,
         ])
     }
 

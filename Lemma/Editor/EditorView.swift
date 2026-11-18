@@ -15,6 +15,7 @@ struct EditorView: NSViewRepresentable {
     var autoCompletion: Bool
     var spellChecking: Bool
     var mathPreview: Bool
+    var indentWrappedLines: Bool
 
     func makeCoordinator() -> EditorCoordinator {
         EditorCoordinator(workspace: workspace)
@@ -33,6 +34,7 @@ struct EditorView: NSViewRepresentable {
         coordinator.completion.showsWhileTyping = autoCompletion
         coordinator.setSpellChecking(spellChecking)
         coordinator.setMathPreviewEnabled(mathPreview)
+        coordinator.setIndentWrappedLines(indentWrappedLines)
         coordinator.updateIssues(workspace.issueSeverityByLine)
     }
 
@@ -73,6 +75,8 @@ final class EditorCoordinator: NSObject, NSTextViewDelegate, NSTextStorageDelega
     private var windowObservers: [NSObjectProtocol] = []
     /// Absatzstile für umgebrochene Zeilen, nach Einrückung in Zeichen.
     private var wrapStyles: [Int: NSParagraphStyle] = [:]
+    /// Umgebrochene Zeilen einrücken (Einstellungen, standardmässig aus).
+    private var indentsWrappedLines = AppSettings.Defaults.indentWrappedLines
 
     init(workspace: DocumentWorkspace) {
         self.workspace = workspace
@@ -271,6 +275,12 @@ final class EditorCoordinator: NSObject, NSTextViewDelegate, NSTextStorageDelega
         textView.isContinuousSpellCheckingEnabled = enabled
     }
 
+    func setIndentWrappedLines(_ enabled: Bool) {
+        guard enabled != indentsWrappedLines, let storage = ownedTextStorage else { return }
+        indentsWrappedLines = enabled
+        updateWrapIndent(in: NSRange(location: 0, length: storage.length), batch: true)
+    }
+
     func setMathPreviewEnabled(_ enabled: Bool) {
         guard enabled != mathPreviewEnabled else { return }
         mathPreviewEnabled = enabled
@@ -365,10 +375,10 @@ final class EditorCoordinator: NSObject, NSTextViewDelegate, NSTextStorageDelega
 
     // MARK: - Umgebrochene Zeilen einrücken
 
-    /// Bricht eine lange Zeile im Editor um, steht der umgebrochene Teil unter dem
-    /// Text der Zeile – zwei Zeichen weiter eingerückt, nach `\item` unter dessen
-    /// Text – statt ganz links. Nur Darstellung (Absatzstil): Der Text selbst und
-    /// damit die gespeicherte Datei ändern sich nicht.
+    /// Wenn eingeschaltet (Einstellungen → Editor): Bricht eine lange Zeile im
+    /// Editor um, steht der umgebrochene Teil unter dem Text der Zeile – zwei
+    /// Zeichen weiter eingerückt, nach `\item` unter dessen Text – statt ganz links.
+    /// Nur Darstellung (Absatzstil): Der Text und die Datei ändern sich nicht.
     ///
     /// - Parameter batch: `true` ausserhalb einer laufenden Bearbeitung (Laden,
     ///   Schriftgrösse); dann werden alle Änderungen gebündelt.
@@ -385,7 +395,8 @@ final class EditorCoordinator: NSObject, NSTextViewDelegate, NSTextStorageDelega
         while location < NSMaxRange(paragraphs), location < length {
             let paragraph = string.paragraphRange(for: NSRange(location: location, length: 0))
             guard paragraph.length > 0 else { break }
-            let style = wrapStyle(indent: hangingIndent(of: paragraph, in: string))
+            // Ausgeschaltet: Einrückung 0 – umgebrochene Zeilen beginnen wie früher links.
+            let style = wrapStyle(indent: indentsWrappedLines ? hangingIndent(of: paragraph, in: string) : 0)
             let current = storage.attribute(.paragraphStyle, at: paragraph.location, effectiveRange: nil) as? NSParagraphStyle
             if current?.headIndent != style.headIndent || current?.defaultTabInterval != style.defaultTabInterval {
                 storage.addAttribute(.paragraphStyle, value: style, range: paragraph)

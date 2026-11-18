@@ -60,6 +60,7 @@ private struct EditorSettingsView: View {
     @AppStorage(AppSettings.Keys.spellChecking) private var spellChecking = AppSettings.Defaults.spellChecking
     @AppStorage(AppSettings.Keys.mathPreview) private var mathPreview = AppSettings.Defaults.mathPreview
     @AppStorage(AppSettings.Keys.showWordCount) private var showWordCount = AppSettings.Defaults.showWordCount
+    @AppStorage(AppSettings.Keys.indentWrappedLines) private var indentWrappedLines = AppSettings.Defaults.indentWrappedLines
 
     var body: some View {
         Form {
@@ -71,6 +72,8 @@ private struct EditorSettingsView: View {
                     }
                 }
                 Toggle("Zeilennummern anzeigen", isOn: $showLineNumbers)
+                Toggle("Umgebrochene Zeilen einrücken", isOn: $indentWrappedLines)
+                    .help("Lange Zeilen laufen nach dem Umbruch eingerückt weiter statt am linken Rand. Ändert nur die Darstellung, nicht die Datei.")
                 Toggle("Aktuelle Zeile hervorheben", isOn: $highlightCurrentLine)
             }
             Section {

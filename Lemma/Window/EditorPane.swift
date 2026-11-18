@@ -16,6 +16,7 @@ struct EditorPane: View {
     @AppStorage(AppSettings.Keys.spellChecking) private var spellChecking = AppSettings.Defaults.spellChecking
     @AppStorage(AppSettings.Keys.mathPreview) private var mathPreview = AppSettings.Defaults.mathPreview
     @AppStorage(AppSettings.Keys.showWordCount) private var showWordCount = AppSettings.Defaults.showWordCount
+    @AppStorage(AppSettings.Keys.indentWrappedLines) private var indentWrappedLines = AppSettings.Defaults.indentWrappedLines
 
     var body: some View {
         VStack(spacing: 0) {
@@ -37,7 +38,8 @@ struct EditorPane: View {
                 highlightCurrentLine: highlightCurrentLine,
                 autoCompletion: autoCompletion,
                 spellChecking: spellChecking,
-                mathPreview: mathPreview
+                mathPreview: mathPreview,
+                indentWrappedLines: indentWrappedLines
             )
             .overlay(alignment: .bottomTrailing) {
                 if showWordCount {
