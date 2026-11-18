@@ -48,6 +48,8 @@ struct FormatInspector: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        // Grau wie in Pages: Die Seitenleiste hebt sich klar vom weissen Editor ab.
+        .background(Color(nsColor: .windowBackgroundColor))
     }
 }
 
@@ -234,6 +236,7 @@ struct TextInspector: View {
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
     }
 
     private func stepFontSize(by step: Int) {
@@ -313,6 +316,7 @@ struct FormulaInspector: View {
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
     }
 
     private func snippetTile(_ id: String, title: String) -> some View {
@@ -521,6 +525,7 @@ struct LayoutInspector: View {
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
         .disabled(!isPageScope && !hasPreamble)
         .onAppear(perform: loadCurrentValues)
         .onChange(of: settings) { _, _ in loadCurrentValues() }

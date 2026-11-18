@@ -43,6 +43,10 @@ struct DocumentWindow: View {
             DocumentToolbar(workspace: workspace)
         }
         .toolbarRole(.editor)
+        // Symbolleiste mit eigenem, grauem Hintergrund – deutlich abgesetzt vom
+        // weissen Editor und der Vorschau, statt durchsichtig über dem Text.
+        .toolbarBackgroundVisibility(.visible, for: .windowToolbar)
+        .toolbarBackground(Color(nsColor: .windowBackgroundColor), for: .windowToolbar)
         .focusedSceneValue(\.workspace, workspace)
         .sheet(isPresented: $workspace.isShowingLog) {
             LogView(log: workspace.lastLog ?? "")

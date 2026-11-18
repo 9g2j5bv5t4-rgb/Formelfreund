@@ -74,8 +74,11 @@ final class LineNumberRulerView: NSRulerView {
               let textStorage = textView.textStorage,
               let lineIndex else { return }
 
-        NSColor.textBackgroundColor.setFill()
+        SyntaxTheme.gutterBackground.setFill()
         bounds.fill()
+        // Trennlinie zwischen Zeilennummern und Text.
+        NSColor.separatorColor.setFill()
+        NSRect(x: bounds.maxX - 1, y: bounds.minY, width: 1, height: bounds.height).fill()
 
         let textLength = textStorage.length
         // Sichtbarer Bereich in Koordinaten des Text-Containers (ohne Innenabstand).

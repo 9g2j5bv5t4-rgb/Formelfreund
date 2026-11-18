@@ -42,6 +42,15 @@ enum SyntaxTheme {
         ]
     }
 
+    /// Hintergrund der Zeilennummern – etwas dunkler (im dunklen Modus heller) als
+    /// der Text, damit Rand und Code klar getrennt sind.
+    static var gutterBackground: NSColor {
+        NSColor(name: "LemmaGutterBackground") { appearance in
+            let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+            return isDark ? NSColor(white: 0.165, alpha: 1) : NSColor(white: 0.955, alpha: 1)
+        }
+    }
+
     /// Hintergrund für zusammengehörige Klammern.
     static var bracketMatchColor: NSColor { NSColor.controlAccentColor.withAlphaComponent(0.28) }
     /// Hintergrund der Zeile mit dem Cursor.

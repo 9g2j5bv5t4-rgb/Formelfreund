@@ -140,6 +140,9 @@ mit Overleaf und TeXShop kompatibel. Jeder Befehl steht auch in der Menüleiste.
   Klammer zwei Zeilen tiefer und den Cursor eingerückt in die Leerzeile.
 - **Rechtschreibung:** geprüft wird nur der Fliesstext – Befehle, Formeln,
   Kommentare und technische Angaben wie `\label{…}` werden nie angestrichen.
+- **Umgebrochene Zeilen** (lange Zeilen im Editor) laufen eingerückt unter dem
+  Text weiter, nach `\item` bündig mit dessen Text – nur in der Darstellung, die
+  Datei bleibt unverändert.
 - **Einklappen:** Dreiecke neben den Zeilennummern klappen Präambel, Abschnitte
   und mehrzeilige Umgebungen ein; „⋯“ klappt wieder auf.
 - **Formelvorschau:** Steht der Cursor in einer Formel, schwebt sie fertig

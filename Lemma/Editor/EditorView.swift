@@ -71,6 +71,8 @@ final class EditorCoordinator: NSObject, NSTextViewDelegate, NSTextStorageDelega
     private var macroCache: (generation: Int, macros: [MathPreviewSource.Macro])?
     private weak var observedWindow: NSWindow?
     private var windowObservers: [NSObjectProtocol] = []
+    /// Absatzstile für umgebrochene Zeilen, nach Einrückung in Zeichen.
+    private var wrapStyles: [Int: NSParagraphStyle] = [:]
 
     init(workspace: DocumentWorkspace) {
         self.workspace = workspace
@@ -134,6 +136,7 @@ final class EditorCoordinator: NSObject, NSTextViewDelegate, NSTextStorageDelega
 
         storage.delegate = self
         textView.delegate = self
+        updateWrapIndent(in: NSRange(location: 0, length: storage.length), batch: true)
 
         let highlighter = SyntaxHighlighter(textView: textView)
         highlighter.onAnalysis = { [weak self] analysis in
@@ -249,6 +252,9 @@ final class EditorCoordinator: NSObject, NSTextViewDelegate, NSTextStorageDelega
         storage.endEditing()
         textView.typingAttributes = attributes
         ruler.fontSize = newSize
+        // Die Einrückung umgebrochener Zeilen hängt von der Zeichenbreite ab.
+        wrapStyles = [:]
+        updateWrapIndent(in: NSRange(location: 0, length: storage.length), batch: true)
     }
 
     func setLineNumbersVisible(_ visible: Bool) {
@@ -308,6 +314,20 @@ final class EditorCoordinator: NSObject, NSTextViewDelegate, NSTextStorageDelega
         textView.filteredCheckingResults(results)
     }
 
+    /// Vor dem Layout: Absätze, deren Text sich geändert hat, bekommen die passende
+    /// Einrückung für umgebrochene Zeilen.
+    nonisolated func textStorage(
+        _ textStorage: NSTextStorage,
+        willProcessEditing editedMask: NSTextStorageEditActions,
+        range editedRange: NSRange,
+        changeInLength delta: Int
+    ) {
+        guard editedMask.contains(.editedCharacters) else { return }
+        MainActor.assumeIsolated {
+            updateWrapIndent(in: editedRange, batch: false)
+        }
+    }
+
     nonisolated func textStorage(
         _ textStorage: NSTextStorage,
         didProcessEditing editedMask: NSTextStorageEditActions,
@@ -341,6 +361,73 @@ final class EditorCoordinator: NSObject, NSTextViewDelegate, NSTextStorageDelega
         if !textView.issueLines.isEmpty {
             textView.needsDisplay = true
         }
+    }
+
+    // MARK: - Umgebrochene Zeilen einrücken
+
+    /// Bricht eine lange Zeile im Editor um, steht der umgebrochene Teil unter dem
+    /// Text der Zeile – zwei Zeichen weiter eingerückt, nach `\item` unter dessen
+    /// Text – statt ganz links. Nur Darstellung (Absatzstil): Der Text selbst und
+    /// damit die gespeicherte Datei ändern sich nicht.
+    ///
+    /// - Parameter batch: `true` ausserhalb einer laufenden Bearbeitung (Laden,
+    ///   Schriftgrösse); dann werden alle Änderungen gebündelt.
+    private func updateWrapIndent(in range: NSRange, batch: Bool) {
+        guard let storage = ownedTextStorage else { return }
+        let string = storage.mutableString
+        let length = string.length
+        guard length > 0 else { return }
+        let start = min(range.location, length)
+        let end = min(range.location + range.length, length)
+        let paragraphs = string.paragraphRange(for: NSRange(location: start, length: end - start))
+        if batch { storage.beginEditing() }
+        var location = paragraphs.location
+        while location < NSMaxRange(paragraphs), location < length {
+            let paragraph = string.paragraphRange(for: NSRange(location: location, length: 0))
+            guard paragraph.length > 0 else { break }
+            let style = wrapStyle(indent: hangingIndent(of: paragraph, in: string))
+            let current = storage.attribute(.paragraphStyle, at: paragraph.location, effectiveRange: nil) as? NSParagraphStyle
+            if current?.headIndent != style.headIndent || current?.defaultTabInterval != style.defaultTabInterval {
+                storage.addAttribute(.paragraphStyle, value: style, range: paragraph)
+            }
+            location = NSMaxRange(paragraph)
+        }
+        if batch { storage.endEditing() }
+    }
+
+    /// Einrückung umgebrochener Zeilen in Zeichen: Einrückung der Zeile plus 2
+    /// (nach `\item ` plus 6, damit der Text bündig weiterläuft).
+    private func hangingIndent(of paragraph: NSRange, in string: NSString) -> Int {
+        var columns = 0
+        var index = paragraph.location
+        let end = NSMaxRange(paragraph)
+        while index < end {
+            let unit = string.character(at: index)
+            if unit == TeXChar.space {
+                columns += 1
+            } else if unit == TeXChar.tab {
+                columns = (columns / 4 + 1) * 4
+            } else {
+                break
+            }
+            index += 1
+        }
+        let isItem = index + 5 <= end && string.substring(with: NSRange(location: index, length: 5)) == "\\item"
+        // Nicht mehr als 40 Zeichen, sonst bleibt bei schmalem Editor kaum Platz.
+        return min(columns + (isItem ? 6 : EditingAssistant.indentUnit.count), 40)
+    }
+
+    private func wrapStyle(indent: Int) -> NSParagraphStyle {
+        if let cached = wrapStyles[indent] { return cached }
+        let attributes = SyntaxTheme.baseAttributes(fontSize: fontSize)
+        let base = (attributes[.paragraphStyle] as? NSParagraphStyle) ?? NSParagraphStyle.default
+        let font = (attributes[.font] as? NSFont) ?? SyntaxTheme.font(size: fontSize)
+        let characterWidth = (" " as NSString).size(withAttributes: [.font: font]).width
+        let style = (base.mutableCopy() as? NSMutableParagraphStyle) ?? NSMutableParagraphStyle()
+        style.firstLineHeadIndent = 0
+        style.headIndent = CGFloat(indent) * characterWidth
+        wrapStyles[indent] = style
+        return style
     }
 
     // MARK: - Fliesstext (Rechtschreibung, Wortzählung)
